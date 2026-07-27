@@ -1,0 +1,46 @@
+import {useMemo, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import {foodRepository} from '../repositories/food.repository';
+import {useFoodOrder} from '../store/FoodOrderContext';
+import {getApiErrorMessage} from '../utils/errorHandler';
+
+/** Food menu ViewModel: categories + client-side search + live cart count. */
+export function useFoodMenuViewModel() {
+  const query = useQuery({
+    queryKey: ['food', 'categories'],
+    queryFn: () => foodRepository.getCategoriesWithOffers(),
+  });
+  const [search, setSearch] = useState('');
+  const {getFoodCartCount} = useFoodOrder();
+
+  const categories = useMemo(() => query.data?.categories ?? [], [query.data]);
+  const coupons = useMemo(() => query.data?.coupons ?? [], [query.data]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) {
+      return categories;
+    }
+    return categories
+      .map(cat => ({
+        ...cat,
+        foodsInCategories: (cat.foodsInCategories ?? []).filter(
+          f =>
+            (f.name ?? '').toLowerCase().includes(q) ||
+            (f.description ?? '').toLowerCase().includes(q),
+        ),
+      }))
+      .filter(cat => (cat.foodsInCategories ?? []).length > 0);
+  }, [categories, search]);
+
+  return {
+    categories: filtered,
+    coupons: search.trim() ? [] : coupons,
+    isLoading: query.isLoading,
+    error: query.isError ? getApiErrorMessage(query.error, 'Failed to load the menu.') : null,
+    refetch: query.refetch,
+    search,
+    setSearch,
+    cartCount: getFoodCartCount(),
+  };
+}

@@ -1,0 +1,43 @@
+# OSX
+.DS_Store
+
+# Xcode / iOS (Android-only project, kept for completeness)
+ios/Pods/
+*.pbxuser
+*.xcworkspace
+
+# Android/IntelliJ
+build/
+.idea/
+.gradle/
+local.properties
+*.iml
+*.hprof
+.cxx/
+android/app/debug.keystore
+android/app/release.keystore
+*.keystore
+!debug.keystore
+
+# node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Metro
+.metro-health-check*
+metro-cache/
+
+# Bundle artifacts
+android/app/src/main/assets/index.android.bundle
+android/app/src/main/res/drawable-*
+android/app/src/main/res/raw/
+
+# Env — do not commit real secrets
+.env
+
+# Testing
+coverage/
+
+# Reanimated / misc
+*.log

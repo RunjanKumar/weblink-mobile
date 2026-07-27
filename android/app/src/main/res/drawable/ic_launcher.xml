@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Background -->
+    <path android:fillColor="#111111" android:pathData="M0,0h108v108h-108z" />
+    <!-- Headboard -->
+    <path android:fillColor="#A3820B" android:pathData="M20,38h6v36h-6z" />
+    <!-- Pillow -->
+    <path android:fillColor="#FFFFFF" android:pathData="M30,44h22v10h-22z" />
+    <!-- Mattress -->
+    <path
+        android:fillColor="#FACC15"
+        android:pathData="M22,54h64v20h-6v-8H28v8h-6z" />
+</vector>

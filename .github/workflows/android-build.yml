@@ -1,0 +1,67 @@
+name: Build Android APK
+
+# Builds a standalone, installable APK entirely on GitHub's servers — no local
+# Android SDK needed. A RELEASE apk is built (not debug) so the JS bundle is
+# embedded and the app runs on a TV without a Metro dev server. It is signed with
+# a generated debug keystore: fine for sideloading, NOT for the Play Store.
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install JS dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Create .env
+        run: cp .env.example .env
+
+      - name: Generate debug keystore
+        run: |
+          keytool -genkeypair -v -storetype PKCS12 \
+            -keystore android/app/debug.keystore \
+            -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US"
+
+      - name: Generate Gradle wrapper
+        run: |
+          curl -sL https://services.gradle.org/distributions/gradle-8.10.2-bin.zip -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /tmp
+          (cd android && /tmp/gradle-8.10.2/bin/gradle wrapper --gradle-version 8.10.2)
+
+      - name: Build release APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: weblink-android-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error

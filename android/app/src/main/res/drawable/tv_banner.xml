@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+    <!-- Background -->
+    <path android:fillColor="#0D0D0D" android:pathData="M0,0h320v180H0z" />
+    <!-- Bed motif (left) -->
+    <path android:fillColor="#A3820B" android:pathData="M36,66h6v36h-6z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M46,72h22v10h-22z" />
+    <path android:fillColor="#FACC15" android:pathData="M38,82h64v20h-6v-8H44v8h-6z" />
+    <!-- Accent bar (bottom) -->
+    <path android:fillColor="#FACC15" android:pathData="M0,172h320v8H0z" />
+</vector>
