@@ -4,6 +4,7 @@ export {getDisplayName} from './user.model';
 export type {
   LoginRequest,
   ForgotPasswordRequest,
+  ResetPasswordRequest,
   LoginResponseData,
   Session,
   AuthStatus,

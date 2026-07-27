@@ -56,13 +56,18 @@ Legend: 🔴 bug / correctness · 🟠 security · 🟡 quality / maintainabilit
 
 ## Backend (`Hotel-Automation`) — affects the mobile app
 
-### 🔴 A. No customer "forgot / reset password" endpoint
+### ✅ A. No customer "forgot / reset password" endpoint — RESOLVED 2026-07-27
 - **File:** `app/routes/v1/userRoutes.js` (customer routes)
 - **Detail:** There is `POST /v1/customer/login/email` (email+password) and phone-OTP login,
   but **no** customer password reset/forgot route (only admin/staff have one).
-- **Impact:** The mobile **Forgot Password** screen has no backend to call yet.
-- **Proposed contract (to implement later):**
-  `POST /v1/customer/forgot-password  { email }` → emails a reset link/OTP.
+- **Resolution:** Implemented as an OTP flow (mobile-friendly, no web page needed):
+  - `POST /v1/customer/forgot-password { email }` → emails a 6-digit code
+    (template `public/templates/customer-reset-otp.html`, 30-min expiry, OTP **not**
+    returned in the response body).
+  - `POST /v1/customer/reset-password { email, otp, password }` → verifies the code
+    (single-use, max 5 wrong attempts) and sets the new password.
+  - The mobile Forgot Password screen now runs the full two-step flow and still
+    degrades to "contact reception" on a 404 from older backend deploys.
 
 ### 🟠 B. OTP returned in the login API response body
 - **File:** `app/controllers/userController.js:3351`

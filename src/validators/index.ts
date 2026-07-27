@@ -1,2 +1,6 @@
-export {loginSchema, forgotPasswordSchema} from './auth.validators';
-export type {LoginFormValues, ForgotPasswordFormValues} from './auth.validators';
+export {loginSchema, forgotPasswordSchema, resetPasswordSchema} from './auth.validators';
+export type {
+  LoginFormValues,
+  ForgotPasswordFormValues,
+  ResetPasswordFormValues,
+} from './auth.validators';

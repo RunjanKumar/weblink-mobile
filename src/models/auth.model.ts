@@ -9,6 +9,13 @@ export interface ForgotPasswordRequest {
   email: string;
 }
 
+export interface ResetPasswordRequest {
+  email: string;
+  /** 6-digit code from the reset email. */
+  otp: string;
+  password: string;
+}
+
 /** Shape of `data` returned by POST /v1/customer/login/email. */
 export interface LoginResponseData {
   user: CustomerUser;

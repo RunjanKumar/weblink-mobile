@@ -7,8 +7,8 @@ export const ENDPOINTS = {
   LOGIN_EMAIL: '/v1/customer/login/email',
   LOGIN_PHONE: '/v1/customer/login',
   VERIFY_OTP: '/customers/verify-otp',
-  // ⚠️ Planned — backend endpoint does not exist yet. See WEBLINK_ISSUES.md (item A).
   FORGOT_PASSWORD: '/v1/customer/forgot-password',
+  RESET_PASSWORD: '/v1/customer/reset-password',
   CUSTOMER_PROFILE: '/v1/customer/login/profile',
   LOGOUT: '/user/logout',
 

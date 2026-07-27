@@ -8,6 +8,7 @@ import type {
   ForgotPasswordRequest,
   LoginRequest,
   LoginResponseData,
+  ResetPasswordRequest,
   Session,
 } from '../models/auth.model';
 
@@ -41,7 +42,12 @@ export const authRepository = {
 
   async forgotPassword(payload: ForgotPasswordRequest): Promise<string> {
     const res = await authApi.forgotPassword(payload);
-    return res.message || 'If an account exists for that email, a reset link has been sent.';
+    return res.message || 'A reset code has been sent to your email address.';
+  },
+
+  async resetPassword(payload: ResetPasswordRequest): Promise<string> {
+    const res = await authApi.resetPassword(payload);
+    return res.message || 'Your password has been updated.';
   },
 
   /** Auto-login: restore + validate a persisted token on app start. */

@@ -22,3 +22,21 @@ export const forgotPasswordSchema = z.object({
 });
 
 export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+
+// Mirrors the backend contract: 6-digit OTP + min-8 password
+// (POST /v1/customer/reset-password).
+export const resetPasswordSchema = z
+  .object({
+    otp: z
+      .string()
+      .trim()
+      .regex(/^\d{6}$/, 'Enter the 6-digit code from the email'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z.string().min(1, 'Please confirm your new password'),
+  })
+  .refine(values => values.password === values.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;

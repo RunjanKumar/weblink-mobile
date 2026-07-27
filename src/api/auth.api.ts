@@ -5,6 +5,7 @@ import type {
   ForgotPasswordRequest,
   LoginRequest,
   LoginResponseData,
+  ResetPasswordRequest,
 } from '../models/auth.model';
 import {logger} from '../services/logger';
 
@@ -23,12 +24,21 @@ export const authApi = {
   },
 
   /**
-   * POST /v1/customer/forgot-password — PLANNED endpoint (see WEBLINK_ISSUES.md).
-   * The repository handles a 404 gracefully until the backend ships this.
+   * POST /v1/customer/forgot-password — emails a 6-digit password-reset OTP.
+   * The ViewModel still degrades gracefully on 404 for older backend deploys.
    */
   async forgotPassword(payload: ForgotPasswordRequest): Promise<ApiResponse<unknown>> {
     const {data} = await apiClient.post<ApiResponse<unknown>>(
       ENDPOINTS.FORGOT_PASSWORD,
+      payload,
+    );
+    return data;
+  },
+
+  /** POST /v1/customer/reset-password — verifies the OTP and sets the new password. */
+  async resetPassword(payload: ResetPasswordRequest): Promise<ApiResponse<unknown>> {
+    const {data} = await apiClient.post<ApiResponse<unknown>>(
+      ENDPOINTS.RESET_PASSWORD,
       payload,
     );
     return data;
