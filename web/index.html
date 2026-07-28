@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!--
+      LG webOS renders at a fixed 1920x1080. `user-scalable=no` stops the remote's
+      pointer mode from pinch-zooming the UI out of alignment.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <title>Weblink</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #0d0d0d;
+        overflow: hidden;
+      }
+      #root {
+        display: flex;
+        height: 100%;
+      }
+      /* react-native-web needs the root chain to be a flex column to fill the TV. */
+      #root > div {
+        flex: 1;
+      }
+      /* The app draws its own amber focus rings; the UA outline double-draws them. */
+      *:focus {
+        outline: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!--
+      A TV has no reachable console: on webOS you would need `ares-inspect` over
+      the network just to read a stack trace, and a startup crash otherwise shows
+      as an indistinguishable black screen. This paints the error onto the screen
+      instead. It only ever becomes visible if something actually threw.
+    -->
+    <script>
+      (function () {
+        function show(title, detail) {
+          var el = document.getElementById('boot-error');
+          if (!el) {
+            el = document.createElement('pre');
+            el.id = 'boot-error';
+            el.style.cssText =
+              'position:fixed;inset:0;z-index:9999;margin:0;padding:24px;overflow:auto;' +
+              'background:#0d0d0d;color:#ef4444;font:14px/1.5 monospace;white-space:pre-wrap';
+            document.body.appendChild(el);
+          }
+          el.textContent += title + '\n' + detail + '\n\n';
+        }
+        window.addEventListener('error', function (e) {
+          show(
+            e.message || 'Script error',
+            (e.filename || '') + ':' + (e.lineno || 0) + '\n' + ((e.error && e.error.stack) || ''),
+          );
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+          var r = e.reason || {};
+          show('Unhandled rejection: ' + (r.message || r), r.stack || '');
+        });
+      })();
+    </script>
+  </body>
+</html>

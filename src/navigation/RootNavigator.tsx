@@ -8,6 +8,7 @@ import {useAuth} from '../store/AuthContext';
 import {useTheme} from '../theme';
 import {AuthNavigator} from './AuthNavigator';
 import {AppNavigator} from './AppNavigator';
+import {navigationRef} from './navigationRef';
 import {SplashScreen} from '../screens/SplashScreen';
 
 /**
@@ -42,7 +43,7 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer theme={navigationTheme}>
+    <NavigationContainer ref={navigationRef} theme={navigationTheme}>
       {status === 'authenticated' ? <AppNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );

@@ -1,7 +1,19 @@
 import {Dimensions, PixelRatio, Platform} from 'react-native';
 
-/** True on Android TV / tvOS. Cheap constant for TV-only sizing branches. */
-export const IS_TV: boolean = Platform.isTV === true;
+/**
+ * True on LG webOS. `Platform.isTV` is always false under react-native-web, so
+ * the web build sniffs the user agent instead — webOS reports "Web0S" (zero) on
+ * modern firmware and "webOS" on older ones.
+ */
+function isWebOS(): boolean {
+  if (Platform.OS !== 'web' || typeof navigator === 'undefined') {
+    return false;
+  }
+  return /web0s|webos/i.test(navigator.userAgent);
+}
+
+/** True on Android TV / tvOS / LG webOS. Cheap constant for TV-only branches. */
+export const IS_TV: boolean = Platform.isTV === true || isWebOS();
 
 export type DeviceType = 'phone' | 'tablet' | 'tv';
 
@@ -12,7 +24,7 @@ const GUIDELINE_BASE_WIDTH = 375;
 const TABLET_MIN_SHORTEST_SIDE = 600;
 
 export function getDeviceType(size?: {width: number; height: number}): DeviceType {
-  if (Platform.isTV) {
+  if (IS_TV) {
     return 'tv';
   }
   const {width, height} = size ?? Dimensions.get('window');

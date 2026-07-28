@@ -10,7 +10,13 @@
     "noImplicitOverride": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    // "DOM" is needed by the `*.web.ts` shims (localStorage, Razorpay's
+    // checkout.js global, the webOS remote's keydown handling). It is only
+    // reachable from files webpack resolves for the web build — Metro never
+    // bundles them — but it does mean tsc will not catch a stray `window` in
+    // native code, so keep DOM usage inside `*.web.*` files.
+    "lib": ["ESNext", "DOM"]
   },
   "include": [
     "src",

@@ -11,6 +11,12 @@
 module.exports = {
   content: ['./App.{js,jsx,ts,tsx}', './src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
+  // 'class', not the Tailwind default 'media': the app picks its own scheme via
+  // ThemeProvider. On the web build NativeWind's runtime throws outright
+  // ("Cannot manually set color scheme, as dark mode is type 'media'") when the
+  // scheme is driven in code under the media strategy. No `dark:` variants are
+  // used today, so this only changes who is allowed to set the scheme.
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {

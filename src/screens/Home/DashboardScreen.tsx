@@ -11,7 +11,8 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Card, ErrorState, Skeleton, Toggle} from '../../components';
+import {Card, ErrorState, Skeleton, Toggle, WebIcon, WEB_ICON_ACCENTS} from '../../components';
+import type {WebIconName} from '../../components';
 import {useDashboardViewModel, useRoomControl} from '../../viewmodels';
 import {useAuth} from '../../store/AuthContext';
 import {useTVFocus} from '../../hooks/useTVFocus';
@@ -86,14 +87,58 @@ function DoorControlCard() {
   );
 }
 
+/* ── Scene / quick-call glyphs ──
+   The web uses emoji on tinted circles for both rows. Its lists are hard-coded
+   dummies while ours come from the API, so match on name and fall back to a
+   neutral glyph for scenes the web never had. Tint colours cycle in the web's
+   order (emerald / orange / purple). */
+const SCENE_EMOJI: Record<string, string> = {
+  master: '📍',
+  night: '🌙',
+  movie: '🎬',
+};
+const SCENE_TINTS = ['rgba(6,78,59,0.6)', 'rgba(124,45,18,0.6)', 'rgba(88,28,135,0.6)'];
+
+function sceneEmoji(name?: string): string {
+  const key = (name ?? '').toLowerCase();
+  const match = Object.entries(SCENE_EMOJI).find(([k]) => key.includes(k));
+  return match ? match[1] : '💡';
+}
+
+const CALL_EMOJI: Record<string, string> = {
+  reception: '🏨',
+  tea: '🍵',
+  snack: '🍪',
+  coffee: '☕',
+  food: '🍽️',
+  clean: '🧹',
+  room: '🧹',
+};
+
+function callEmoji(name?: string): string {
+  const key = (name ?? '').toLowerCase();
+  const match = Object.entries(CALL_EMOJI).find(([k]) => key.includes(k));
+  return match ? match[1] : '🛎️';
+}
+
 /* ── One scene row (real API via useRoomControl) ── */
-function SceneRow({device, onToggle}: {device: RoomDevice; onToggle: (d: RoomDevice) => void}) {
+function SceneRow({
+  device,
+  index,
+  onToggle,
+}: {
+  device: RoomDevice;
+  index: number;
+  onToggle: (d: RoomDevice) => void;
+}) {
   const {theme} = useTheme();
   return (
     <Card className="mb-3 flex-row items-center justify-between">
       <View className="flex-row items-center">
-        <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-elevated">
-          <Icon name="color-wand-outline" size={20} color={theme.colors.primary} />
+        <View
+          className="h-10 w-10 items-center justify-center rounded-full"
+          style={{backgroundColor: SCENE_TINTS[index % SCENE_TINTS.length]}}>
+          <Text style={{fontSize: 18}}>{sceneEmoji(device.friendlyname)}</Text>
         </View>
         <View className="ml-3">
           <Text className="text-sm font-medium text-content">{device.friendlyname ?? 'Scene'}</Text>
@@ -129,7 +174,7 @@ function QuickCallCard({item, onPress}: {item: QuickCall; onPress: () => void}) 
       className="mr-3 w-28 items-center rounded-2xl bg-surface p-3"
       style={{borderWidth: 2, borderColor: focused ? theme.colors.focusRing : theme.colors.border}}>
       <View className="mb-2 h-12 w-12 items-center justify-center rounded-xl bg-surface-elevated">
-        <Icon name="call" size={22} color={theme.colors.primary} />
+        <Text style={{fontSize: 26}}>{callEmoji(item.name)}</Text>
       </View>
       <Text className="text-xs font-semibold text-content" numberOfLines={1}>
         {item.name}
@@ -143,16 +188,21 @@ function QuickCallCard({item, onPress}: {item: QuickCall; onPress: () => void}) 
   );
 }
 
-/* ── Quick-action tile ── */
+/* ── Quick-action tile ──
+   Icon + accent colour are the web's (see components/WebIcon), so the tile grid
+   reads the same on both platforms. `accent` falls back to the theme primary for
+   tiles the web has no counterpart for. */
 function QuickActionTile({
   icon,
+  accent,
   title,
   onPress,
   right,
   width,
   hasTVPreferredFocus = false,
 }: {
-  icon: string;
+  icon: WebIconName;
+  accent?: string;
   title: string;
   onPress: () => void;
   right?: React.ReactNode;
@@ -173,7 +223,7 @@ function QuickActionTile({
       className="mb-3 rounded-2xl bg-surface p-4"
       style={{width, borderWidth: 2, borderColor: focused ? theme.colors.focusRing : theme.colors.border}}>
       <View className="flex-row items-center justify-between">
-        <Icon name={icon} size={24} color={theme.colors.primary} />
+        <WebIcon name={icon} size={24} color={accent ?? theme.colors.primary} />
         {right}
       </View>
       <Text className="mt-6 text-sm font-bold text-content">{title}</Text>
@@ -253,8 +303,8 @@ export function DashboardScreen({navigation}: Props) {
             <Text className="mb-3 text-lg font-bold text-content">
               Room <Text className="text-primary">Scenes</Text>
             </Text>
-            {room.scenes.map(s => (
-              <SceneRow key={s._id} device={s} onToggle={toggleScene} />
+            {room.scenes.map((s, i) => (
+              <SceneRow key={s._id} device={s} index={i} onToggle={toggleScene} />
             ))}
           </View>
         ) : null}
@@ -284,7 +334,8 @@ export function DashboardScreen({navigation}: Props) {
           </Text>
           <View className="flex-row flex-wrap justify-between">
             <QuickActionTile
-              icon="bulb-outline"
+              icon="bulb"
+              accent={WEB_ICON_ACCENTS.bulb}
               title="Lights Control"
               width={tileWidth}
               hasTVPreferredFocus
@@ -303,37 +354,40 @@ export function DashboardScreen({navigation}: Props) {
               }
             />
             <QuickActionTile
-              icon="snow-outline"
+              icon="snow"
+              accent={WEB_ICON_ACCENTS.snow}
               title="Climate / AC"
               width={tileWidth}
               onPress={() => navigation.navigate('Ac')}
             />
             <QuickActionTile
-              icon="notifications-outline"
+              icon="bell"
+              accent={WEB_ICON_ACCENTS.bell}
               title="Service Request"
               width={tileWidth}
               onPress={() => navigation.navigate('Services')}
             />
             <QuickActionTile
-              icon="restaurant-outline"
+              icon="food"
+              accent={WEB_ICON_ACCENTS.food}
               title="Food Order"
               width={tileWidth}
               onPress={() => navigation.navigate('Food')}
             />
             <QuickActionTile
-              icon="star-outline"
+              icon="facilities"
               title="Facilities"
               width={tileWidth}
               onPress={() => navigation.navigate('Facilities')}
             />
             <QuickActionTile
-              icon="shirt-outline"
+              icon="laundry"
               title="Laundry"
               width={tileWidth}
               onPress={() => navigation.navigate('Laundry')}
             />
             <QuickActionTile
-              icon="headset-outline"
+              icon="reception"
               title="Reception"
               width={tileWidth}
               onPress={() => navigation.navigate('Reception')}

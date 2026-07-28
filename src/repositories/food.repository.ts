@@ -1,18 +1,75 @@
 import {foodApi, type VerifyPaymentPayload} from '../api/food.api';
+import {logger} from '../services/logger';
 import type {
   Coupon,
   CouponValidateData,
   CreateOrderPayload,
+  Food,
   FoodCategory,
   FoodOrder,
   InitiatePaymentData,
 } from '../models/food.model';
 
+/**
+ * Coerce an API list field to an array.
+ *
+ * The backend is not consistent about where a list lives on the envelope: some
+ * endpoints return `data: T[]`, others wrap it under a name (`data.food`,
+ * `data.serviceData`, `data.items`). `/v1/foodCategory` in particular returns
+ * `data.data` — one level deeper than PHASE2_SPEC documented — and the menu
+ * screen calling `.map` on that object was a hard crash ("undefined is not a
+ * function"), not a render glitch. So never trust the declared shape: accept a
+ * bare array or any of `keys`, fall back to the first array-valued property,
+ * and log anything else so the real shape shows up in logcat.
+ */
+function toArray<T>(value: unknown, scope: string, keys: string[]): T[] {
+  if (value == null) {
+    return [];
+  }
+  if (Array.isArray(value)) {
+    return value as T[];
+  }
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    for (const key of keys) {
+      if (Array.isArray(obj[key])) {
+        return obj[key] as T[];
+      }
+    }
+    const found = Object.entries(obj).find(([, v]) => Array.isArray(v));
+    if (found) {
+      logger.warn(scope, `list found under unexpected key "${found[0]}"`);
+      return found[1] as T[];
+    }
+  }
+  logger.warn(scope, 'expected a list but got', typeof value, Object.keys(value as object));
+  return [];
+}
+
 export const foodRepository = {
   /** Categories + the offers shown in the "Special Offers" slider. */
   async getCategoriesWithOffers(): Promise<{categories: FoodCategory[]; coupons: Coupon[]}> {
     const res = await foodApi.getCategories();
-    return {categories: res.data ?? [], coupons: res.couponData ?? []};
+    // Live API nests the list at `data.data`; `data: Category[]` is also accepted.
+    const rawCategories = toArray<FoodCategory>(res.data, 'foodRepository.categories', [
+      'data',
+      'foodCategory',
+      'foodCategories',
+      'categories',
+      'category',
+    ]);
+    // Guarantee the nested food list is an array too — the menu maps over it.
+    const categories = rawCategories.map(cat => ({
+      ...cat,
+      foodsInCategories: toArray<Food>(cat?.foodsInCategories, 'foodRepository.foods', [
+        'foods',
+        'food',
+      ]),
+    }));
+    const rawCoupons =
+      res.couponData ?? (res.data as {couponData?: unknown} | undefined)?.couponData;
+    const coupons = toArray<Coupon>(rawCoupons, 'foodRepository.coupons', ['couponData', 'coupons']);
+    return {categories, coupons};
   },
 
   async getCoupon(couponId: string): Promise<Coupon | null> {
@@ -21,12 +78,26 @@ export const foodRepository = {
     if (!detail) {
       return null;
     }
-    return Array.isArray(detail) ? detail[0] ?? null : detail;
+    const coupon = Array.isArray(detail) ? detail[0] ?? null : detail;
+    if (!coupon) {
+      return null;
+    }
+    return {
+      ...coupon,
+      applicableItemsData: toArray<Food>(coupon.applicableItemsData, 'foodRepository.coupon', [
+        'items',
+        'foods',
+      ]),
+    };
   },
 
   async getOrders(): Promise<FoodOrder[]> {
     const res = await foodApi.getOrders();
-    return res.data?.food ?? [];
+    return toArray<FoodOrder>(res.data?.food ?? res.data, 'foodRepository.orders', [
+      'food',
+      'orders',
+      'data',
+    ]);
   },
 
   /** Create the order and return its id. */

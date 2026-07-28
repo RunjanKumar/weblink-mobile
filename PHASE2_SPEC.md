@@ -33,7 +33,7 @@ Climate/AC (local), Quick Calls, Quick Actions.
 **Screens:** `/food` (menu: search, offer slider, sticky category tabs + scroll-spy list, floating cart), `/food-details` (item + add-ons, qty stepper), `/coupon-detail`, `/cart` (coupon, bill, payment sheet), `/order-history` (status/payment badges, pay/retry, 30s polling).
 
 **Endpoints:**
-- `GET /v1/foodCategory?hasFoods=true&excludeCouponAppliedCategories=false` → `{data: Category[], couponData: Coupon[]}`. `Category{_id,name,foodsInCategories:Food[]}`; `Food{_id,name,description,price,priceAfterDiscount,imageURL,kcal,type,inGridients[],choiceOfAddOnDetails:AddOn[],isAvailable,couponData{discountType}}`.
+- `GET /v1/foodCategory?hasFoods=true&excludeCouponAppliedCategories=false` → **`data.data: Category[]`** (verified against dev on 2026-07-27 — NOT the bare `data: Category[]` originally documented here; assuming the bare array crashed the menu, so `food.repository` now coerces both), plus `couponData: Coupon[]`. `Category{_id,name,foodsInCategories:Food[]}`; `Food{_id,name,description,price,priceAfterDiscount,imageURL,kcal,type,inGridients[],choiceOfAddOnDetails:AddOn[],isAvailable,couponData{discountType}}`.
 - `GET /v1/foodOrder` → `data.food: Order[]`. `Order{_id,status,paymentStatus,foodItems[{quantity,price,foodDetail{name,type}}],totalPrice,totalPriceAfterDisCount,tax,taxInAmount,totalPriceAfterTax,createdAt}`.
 - `POST /v1/foodOrder` → `{hotelId, foodItems:[{foodId,quantity,price}], deliveryAddress:"Room <n>", coupon?}`. Always created COD first; returns `_id`.
 - `POST /v1/foodOrder/initiatePayment {foodOrderId}` → `{razorpayOrderId, amount(paise), currency, razorpayKey}`.

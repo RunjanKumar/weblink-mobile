@@ -1,0 +1,14 @@
+{
+  "id": "com.wattinventive.weblink",
+  "version": "1.0.0",
+  "vendor": "Watt Inventive",
+  "type": "web",
+  "main": "index.html",
+  "title": "Weblink",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "bgColor": "#0d0d0d",
+  "iconColor": "#facc15",
+  "disableBackHistoryAPI": true,
+  "supportPortraitMode": false
+}

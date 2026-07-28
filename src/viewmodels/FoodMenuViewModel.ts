@@ -13,8 +13,16 @@ export function useFoodMenuViewModel() {
   const [search, setSearch] = useState('');
   const {getFoodCartCount} = useFoodOrder();
 
-  const categories = useMemo(() => query.data?.categories ?? [], [query.data]);
-  const coupons = useMemo(() => query.data?.coupons ?? [], [query.data]);
+  // `Array.isArray` (not just `??`) because a non-array from the API would make
+  // the screen call `.map` on a non-array and hard-crash the app.
+  const categories = useMemo(() => {
+    const value = query.data?.categories;
+    return Array.isArray(value) ? value : [];
+  }, [query.data]);
+  const coupons = useMemo(() => {
+    const value = query.data?.coupons;
+    return Array.isArray(value) ? value : [];
+  }, [query.data]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -24,7 +32,10 @@ export function useFoodMenuViewModel() {
     return categories
       .map(cat => ({
         ...cat,
-        foodsInCategories: (cat.foodsInCategories ?? []).filter(
+        foodsInCategories: (Array.isArray(cat.foodsInCategories)
+          ? cat.foodsInCategories
+          : []
+        ).filter(
           f =>
             (f.name ?? '').toLowerCase().includes(q) ||
             (f.description ?? '').toLowerCase().includes(q),

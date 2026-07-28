@@ -33,6 +33,10 @@ android/app/src/main/assets/index.android.bundle
 android/app/src/main/res/drawable-*
 android/app/src/main/res/raw/
 
+# Web / LG webOS build output (regenerate with `npm run ipk`)
+web-build/
+dist-webos/
+
 # Env — do not commit real secrets
 .env
 

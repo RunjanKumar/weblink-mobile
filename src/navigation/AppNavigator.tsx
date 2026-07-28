@@ -1,7 +1,7 @@
 import React from 'react';
 import {Platform} from 'react-native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import Icon from 'react-native-vector-icons/Ionicons';
+import {WebIcon, type WebIconName} from '../components';
 import type {AppTabParamList} from './types';
 import {useTheme} from '../theme';
 import {HomeStackNavigator} from './HomeStackNavigator';
@@ -11,11 +11,15 @@ import {SettingsScreen} from '../screens/Settings/SettingsScreen';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
-const ICONS: Record<keyof AppTabParamList, string> = {
-  Home: 'home-outline',
-  Booking: 'calendar-outline',
-  Profile: 'person-outline',
-  Settings: 'settings-outline',
+// NOTE: the web's bottom bar is Home / Reception / Facilities / Services — a
+// different tab set, not just different icons. Only `Home` maps across, so it
+// uses the web's exact glyph (filled when active, as on the web); the rest are
+// drawn in the same Feather/Lucide family so the bar reads as one set.
+const ICONS: Record<keyof AppTabParamList, WebIconName> = {
+  Home: 'home',
+  Booking: 'booking',
+  Profile: 'profile',
+  Settings: 'settings',
 };
 
 export function AppNavigator() {
@@ -37,8 +41,13 @@ export function AppNavigator() {
           paddingTop: 8,
         },
         tabBarLabelStyle: {fontSize: 11, fontWeight: '500'},
-        tabBarIcon: ({color, size}) => (
-          <Icon name={ICONS[route.name]} color={color} size={size} />
+        tabBarIcon: ({color, size, focused}) => (
+          <WebIcon
+            name={ICONS[route.name]}
+            color={color}
+            size={size}
+            filled={focused && ICONS[route.name] === 'home'}
+          />
         ),
       })}>
       <Tab.Screen name="Home" component={HomeStackNavigator} options={{title: 'Home'}} />
