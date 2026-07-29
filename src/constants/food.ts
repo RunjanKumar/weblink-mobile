@@ -1,3 +1,5 @@
+import type {StatusTone} from '../theme/statusTones';
+
 export const DISCOUNT_TYPES = {PERCENTAGE: 1, AMOUNT: 2, BOGO: 3} as const;
 
 export const TRANSACTION_STATUS = {
@@ -16,12 +18,14 @@ export const PAYMENT_STATUS_LABELS: Record<number, string> = {
   [TRANSACTION_STATUS.REFUNDED]: 'Refunded',
 };
 
-export const PAYMENT_STATUS_COLORS: Record<number, string> = {
-  [TRANSACTION_STATUS.PENDING]: '#f59e0b',
-  [TRANSACTION_STATUS.SUCCESS]: '#22c55e',
-  [TRANSACTION_STATUS.FAILED]: '#ef4444',
-  [TRANSACTION_STATUS.CANCELLED]: '#6b7280',
-  [TRANSACTION_STATUS.REFUNDED]: '#3b82f6',
+// Tone KEYS — resolve through `useStatusTones()` (theme-aware, light + dark).
+
+export const PAYMENT_STATUS_TONES: Record<number, StatusTone> = {
+  [TRANSACTION_STATUS.PENDING]: 'warning',
+  [TRANSACTION_STATUS.SUCCESS]: 'success',
+  [TRANSACTION_STATUS.FAILED]: 'danger',
+  [TRANSACTION_STATUS.CANCELLED]: 'muted',
+  [TRANSACTION_STATUS.REFUNDED]: 'info',
 };
 
 // Food order lifecycle reuses BOOKING_STATUS values (1..4) with food-specific labels.

@@ -1,4 +1,8 @@
 import React, {useEffect, useRef, useState} from 'react';
+import {useTheme} from '../theme';
+import {registerModal} from '../services/modalRegistry';
+
+const PICKER_ROOT_ID = 'datetime-picker-root';
 
 /**
  * Web build of `@react-native-community/datetimepicker` (LG webOS / browser).
@@ -16,7 +20,12 @@ import React, {useEffect, useRef, useState} from 'react';
  */
 export interface DateTimePickerProps {
   value: Date;
-  mode?: 'date' | 'time';
+  /**
+   * `datetime` renders ONE combined `<input type="datetime-local">` — matching
+   * the reference web app's reserve flow (a single field, not date→time steps).
+   * The native Android module has no datetime mode; callers branch on platform.
+   */
+  mode?: 'date' | 'time' | 'datetime';
   onChange?: (event: {type?: string}, date?: Date) => void;
   minimumDate?: Date;
   maximumDate?: Date;
@@ -35,6 +44,20 @@ function toTimeValue(d: Date): string {
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function toDateTimeValue(d: Date): string {
+  return `${toDateValue(d)}T${toTimeValue(d)}`;
+}
+
+function draftFor(mode: string, value: Date): string {
+  if (mode === 'time') {
+    return toTimeValue(value);
+  }
+  if (mode === 'datetime') {
+    return toDateTimeValue(value);
+  }
+  return toDateValue(value);
+}
+
 export default function DateTimePicker({
   value,
   mode = 'date',
@@ -42,9 +65,19 @@ export default function DateTimePicker({
   minimumDate,
   maximumDate,
 }: DateTimePickerProps) {
-  const isDate = mode !== 'time';
-  const [draft, setDraft] = useState(() => (isDate ? toDateValue(value) : toTimeValue(value)));
+  const {theme, scheme} = useTheme();
+  const c = theme.colors;
+  const [draft, setDraft] = useState(() => draftFor(mode, value));
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // The reserve screen reuses ONE mounted picker and flips `mode` date→time.
+  // The lazy initializer above runs only on first mount, so without this
+  // resync the time step keeps a DATE string, the input rejects it, and
+  // confirm() built an Invalid Date (the "date picker does not work" bug).
+  useEffect(() => {
+    setDraft(draftFor(mode, value));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   // Focus on mount so the remote's OK button drives the picker straight away.
   useEffect(() => {
@@ -53,25 +86,68 @@ export default function DateTimePicker({
 
   const cancel = () => onChange?.({type: 'dismissed'}, undefined);
 
+  // Modal-layer integration: the TV Back key must close the picker (not pop
+  // the screen under it), and spatial nav must stay inside the overlay.
+  useEffect(() => {
+    return registerModal({rootId: PICKER_ROOT_ID, close: cancel});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const confirm = () => {
     if (!draft) {
       cancel();
       return;
     }
     const next = new Date(value);
-    if (isDate) {
+    if (mode === 'datetime') {
+      // "YYYY-MM-DDTHH:mm"
+      const [datePart, timePart] = draft.split('T');
+      const [y, m, d] = (datePart ?? '').split('-').map(Number);
+      const [h, min] = (timePart ?? '').split(':').map(Number);
+      if (!y || !m || !d || Number.isNaN(h)) {
+        cancel();
+        return;
+      }
+      next.setFullYear(y, m - 1, d);
+      next.setHours(h ?? 0, min ?? 0, 0, 0);
+    } else if (mode === 'time') {
+      const [h, min] = draft.split(':').map(Number);
+      if (Number.isNaN(h)) {
+        cancel();
+        return;
+      }
+      next.setHours(h ?? 0, min ?? 0, 0, 0);
+    } else {
       const [y, m, d] = draft.split('-').map(Number);
       if (!y || !m || !d) {
         cancel();
         return;
       }
       next.setFullYear(y, m - 1, d);
-    } else {
-      const [h, min] = draft.split(':').map(Number);
-      next.setHours(h ?? 0, min ?? 0, 0, 0);
     }
     onChange?.({type: 'set'}, next);
   };
+
+  const inputType =
+    mode === 'datetime' ? 'datetime-local' : mode === 'time' ? 'time' : 'date';
+  const title =
+    mode === 'datetime' ? 'Select date and time' : mode === 'time' ? 'Select time' : 'Select date';
+  const minValue =
+    minimumDate == null
+      ? undefined
+      : mode === 'datetime'
+        ? toDateTimeValue(minimumDate)
+        : mode === 'date'
+          ? toDateValue(minimumDate)
+          : undefined;
+  const maxValue =
+    maximumDate == null
+      ? undefined
+      : mode === 'datetime'
+        ? toDateTimeValue(maximumDate)
+        : mode === 'date'
+          ? toDateValue(maximumDate)
+          : undefined;
 
   return (
     <div
@@ -80,7 +156,7 @@ export default function DateTimePicker({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.7)',
+        background: c.overlay,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -88,23 +164,24 @@ export default function DateTimePicker({
       }}
       onClick={cancel}>
       <div
+        id={PICKER_ROOT_ID}
         onClick={e => e.stopPropagation()}
         style={{
-          background: '#1a1a1a',
-          border: '1px solid #2a2a2a',
+          background: c.surface,
+          border: `1px solid ${c.border}`,
           borderRadius: 20,
           padding: 24,
           minWidth: 320,
         }}>
-        <p style={{color: '#ffffff', fontWeight: 700, fontSize: 16, margin: '0 0 16px'}}>
-          {isDate ? 'Select date' : 'Select time'}
+        <p style={{color: c.text, fontWeight: 700, fontSize: 16, margin: '0 0 16px'}}>
+          {title}
         </p>
         <input
           ref={inputRef}
-          type={isDate ? 'date' : 'time'}
+          type={inputType}
           value={draft}
-          min={isDate && minimumDate ? toDateValue(minimumDate) : undefined}
-          max={isDate && maximumDate ? toDateValue(maximumDate) : undefined}
+          min={minValue}
+          max={maxValue}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => {
             if (e.key === 'Enter') {
@@ -116,13 +193,14 @@ export default function DateTimePicker({
           }}
           style={{
             width: '100%',
-            background: '#0d0d0d',
-            color: '#ffffff',
-            border: '1px solid #2a2a2a',
+            background: c.surfaceElevated,
+            color: c.text,
+            border: `1px solid ${c.border}`,
             borderRadius: 12,
             padding: '12px 14px',
             fontSize: 16,
-            colorScheme: 'dark',
+            // Tells the UA's native picker chrome which scheme to render in.
+            colorScheme: scheme,
           }}
         />
         <div style={{display: 'flex', gap: 12, marginTop: 20, justifyContent: 'flex-end'}}>
@@ -130,8 +208,8 @@ export default function DateTimePicker({
             onClick={cancel}
             style={{
               background: 'transparent',
-              color: '#9ca3af',
-              border: '1px solid #2a2a2a',
+              color: c.textTertiary,
+              border: `1px solid ${c.border}`,
               borderRadius: 999,
               padding: '10px 20px',
               fontSize: 14,
@@ -142,8 +220,8 @@ export default function DateTimePicker({
           <button
             onClick={confirm}
             style={{
-              background: '#facc15',
-              color: '#0d0d0d',
+              background: c.primary,
+              color: c.primaryForeground,
               border: 'none',
               borderRadius: 999,
               padding: '10px 24px',

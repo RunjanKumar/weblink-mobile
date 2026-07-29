@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -9,77 +8,90 @@ import {
   View,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/Ionicons';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Button, Header, StarRating} from '../../components';
+import {Button, Header, StarRating, toast} from '../../components';
 import {useFeedbackViewModel} from '../../viewmodels';
 import {useTheme} from '../../theme';
+import {IS_WEB_BUILD} from '../../utils';
 import type {HomeStackParamList} from '../../navigation/types';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'Feedback'>;
 
+/**
+ * Reference Feedback.jsx: bold headline + subtitle, star row, white
+ * message box (white in BOTH schemes — deliberate reference look), Submit.
+ *
+ * On success the form is reset by the viewmodel and a toast fires. The webOS
+ * build then returns to the Dashboard (the client does not want the guest left
+ * on a blank form on a TV); the Android build stays on the page as before.
+ */
 export function FeedbackScreen({navigation}: Props) {
   const {theme} = useTheme();
   const {star, setStar, notes, setNotes, submit, isSubmitting, error} = useFeedbackViewModel();
 
+  // Reference surfaces API failures as toasts, not inline banners.
+  React.useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
+
   const onSubmit = () =>
     submit(() => {
-      Alert.alert('Thank you!', 'Your feedback has been submitted.', [
-        {text: 'OK', onPress: () => navigation.goBack()},
-      ]);
+      toast.success('Thank you for your feedback!');
+      if (IS_WEB_BUILD) {
+        // Feedback is always pushed from the Dashboard, so this pops back to it.
+        navigation.navigate('Dashboard');
+      }
     });
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}} edges={['top', 'bottom']}>
-      <Header title="Rate your stay" onBack={() => navigation.goBack()} />
+      <Header title="Feedback" onBack={() => navigation.goBack()} />
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={{padding: 20}} keyboardShouldPersistTaps="handled">
-          <Text className="text-base font-semibold text-content">How was your experience?</Text>
-          <Text className="mt-1 text-sm text-content-tertiary">
-            Tap a star to rate your stay with us.
+        <ScrollView
+          contentContainerStyle={{padding: 20, flexGrow: 1}}
+          keyboardShouldPersistTaps="handled">
+          <Text className="text-2xl font-bold leading-tight text-content">
+            Rate Your Stay – We Value Your Opinion!
+          </Text>
+          <Text className="mt-2 text-sm text-content-tertiary">
+            Share your thoughts to help us improve your experience.
           </Text>
 
-          <View className="my-6 items-center">
+          <Text className="mb-3 mt-8 text-base font-semibold text-content">Rate your stay</Text>
+          <View className="items-start">
             <StarRating value={star} onChange={setStar} />
           </View>
 
-          {error ? (
-            <View
-              className="mb-4 flex-row items-center rounded-xl p-3"
-              style={{
-                backgroundColor: 'rgba(239,68,68,0.12)',
-                borderWidth: 1,
-                borderColor: 'rgba(239,68,68,0.4)',
-              }}>
-              <Icon name="alert-circle" size={18} color={theme.colors.danger} />
-              <Text className="ml-2 flex-1 text-sm text-danger">{error}</Text>
-            </View>
-          ) : null}
-
-          <Text className="mb-2 text-sm font-medium text-content-secondary">
-            Share your experience
+          <Text className="mb-3 mt-8 text-base font-semibold text-content">
+            Share Your Experience
           </Text>
           <TextInput
             value={notes}
             onChangeText={setNotes}
-            placeholder="Tell us more (optional)"
-            placeholderTextColor={theme.colors.muted}
+            placeholder="Write your message"
+            placeholderTextColor="#9ca3af"
             multiline
             textAlignVertical="top"
-            className="rounded-xl bg-surface-elevated px-4 py-3 text-base text-content"
-            style={{minHeight: 120, borderWidth: 1.5, borderColor: theme.colors.border}}
+            className="rounded-2xl px-4 py-4 text-sm"
+            // Reference: white box with dark text in both schemes; hairline
+            // border keeps it visible against the light background.
+            style={{
+              height: 180,
+              backgroundColor: '#ffffff',
+              color: '#0d0d0d',
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+            }}
           />
 
+          <View className="flex-1" />
+
           <View className="mt-6">
-            <Button
-              label="Submit feedback"
-              onPress={onSubmit}
-              loading={isSubmitting}
-              disabled={star === 0}
-              fullWidth
-            />
+            <Button label="Submit" onPress={onSubmit} loading={isSubmitting} fullWidth />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

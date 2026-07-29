@@ -1,5 +1,6 @@
 import {foodApi, type VerifyPaymentPayload} from '../api/food.api';
 import {logger} from '../services/logger';
+import {resolveImageUrl} from '../utils/imageUrl';
 import type {
   Coupon,
   CouponValidateData,
@@ -46,6 +47,18 @@ function toArray<T>(value: unknown, scope: string, keys: string[]): T[] {
   return [];
 }
 
+/** Resolve a food's (and its add-ons') relative image paths to loadable URLs. */
+function normalizeFood(food: Food): Food {
+  return {
+    ...food,
+    imageURL: resolveImageUrl(food.imageURL),
+    choiceOfAddOnDetails: (food.choiceOfAddOnDetails ?? []).map(addOn => ({
+      ...addOn,
+      imageURL: resolveImageUrl(addOn.imageURL),
+    })),
+  };
+}
+
 export const foodRepository = {
   /** Categories + the offers shown in the "Special Offers" slider. */
   async getCategoriesWithOffers(): Promise<{categories: FoodCategory[]; coupons: Coupon[]}> {
@@ -58,17 +71,21 @@ export const foodRepository = {
       'categories',
       'category',
     ]);
-    // Guarantee the nested food list is an array too — the menu maps over it.
+    // Guarantee the nested food list is an array too — the menu maps over it —
+    // and resolve the API's relative image paths to loadable URLs.
     const categories = rawCategories.map(cat => ({
       ...cat,
       foodsInCategories: toArray<Food>(cat?.foodsInCategories, 'foodRepository.foods', [
         'foods',
         'food',
-      ]),
+      ]).map(normalizeFood),
     }));
     const rawCoupons =
       res.couponData ?? (res.data as {couponData?: unknown} | undefined)?.couponData;
-    const coupons = toArray<Coupon>(rawCoupons, 'foodRepository.coupons', ['couponData', 'coupons']);
+    const coupons = toArray<Coupon>(rawCoupons, 'foodRepository.coupons', [
+      'couponData',
+      'coupons',
+    ]).map(c => ({...c, image: resolveImageUrl(c.image)}));
     return {categories, coupons};
   },
 
@@ -84,10 +101,11 @@ export const foodRepository = {
     }
     return {
       ...coupon,
+      image: resolveImageUrl(coupon.image),
       applicableItemsData: toArray<Food>(coupon.applicableItemsData, 'foodRepository.coupon', [
         'items',
         'foods',
-      ]),
+      ]).map(normalizeFood),
     };
   },
 

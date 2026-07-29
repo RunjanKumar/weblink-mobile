@@ -74,9 +74,10 @@ export function LoginScreen({navigation}: Props) {
               <View
                 className="mb-4 flex-row items-center rounded-xl p-3"
                 style={{
-                  backgroundColor: 'rgba(239,68,68,0.12)',
+                  // Tint derived from the theme's danger so it tracks the scheme.
+                  backgroundColor: `${theme.colors.danger}1f`,
                   borderWidth: 1,
-                  borderColor: 'rgba(239,68,68,0.4)',
+                  borderColor: `${theme.colors.danger}66`,
                 }}>
                 <Icon name="alert-circle" size={18} color={theme.colors.danger} />
                 <Text className="ml-2 flex-1 text-sm text-danger">{formError}</Text>

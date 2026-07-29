@@ -1,5 +1,6 @@
 import React from 'react';
 import Svg, {Path, Polygon, Polyline} from 'react-native-svg';
+import {useTheme} from '../../theme';
 
 /**
  * The web app's icon set, ported 1:1.
@@ -42,13 +43,39 @@ export interface WebIconProps {
   filled?: boolean;
 }
 
-/** Web `ActionIcon` colours, kept so Quick Actions read exactly as on the web. */
-export const WEB_ICON_ACCENTS = {
-  bell: '#facc15',
-  bulb: '#4ade80',
-  snow: '#60a5fa',
-  food: '#fb923c',
+/**
+ * Web `ActionIcon` colours per scheme. The dark set is the web app's, verbatim.
+ * Those values are 1.8–2.5:1 against white — invisible on the light theme (seen
+ * on the TV) — so light uses the same hues at their 700 weights (≥4.5:1 on the
+ * white cards).
+ */
+const ACCENTS_BY_SCHEME = {
+  dark: {
+    bell: '#facc15',
+    bulb: '#4ade80',
+    snow: '#60a5fa',
+    food: '#fb923c',
+    facilities: '#a78bfa',
+    laundry: '#22d3ee',
+  },
+  light: {
+    bell: '#a16207',
+    bulb: '#15803d',
+    snow: '#1d4ed8',
+    food: '#c2410c',
+    facilities: '#6d28d9',
+    laundry: '#0e7490',
+  },
 } as const;
+
+/** @deprecated dark-only values — use `useWebIconAccents()` so light theme works. */
+export const WEB_ICON_ACCENTS = ACCENTS_BY_SCHEME.dark;
+
+/** Quick-action accent colours for the ACTIVE scheme. */
+export function useWebIconAccents() {
+  const {scheme} = useTheme();
+  return ACCENTS_BY_SCHEME[scheme];
+}
 
 export function WebIcon({name, color, size = 24, filled = false}: WebIconProps) {
   const stroke = {

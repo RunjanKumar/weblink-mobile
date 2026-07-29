@@ -3,7 +3,7 @@ import {Pressable, ScrollView, Text, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Button, Card, ErrorState, Header, Loader} from '../../components';
+import {AppImage, Button, Card, ErrorState, Header, Loader} from '../../components';
 import {useServiceCatalogViewModel} from '../../viewmodels';
 import {useTVFocus} from '../../hooks/useTVFocus';
 import {useTheme} from '../../theme';
@@ -30,7 +30,7 @@ function RequestPill({
     state === 'requested'
       ? theme.colors.primary
       : state === 'booked'
-        ? 'rgba(34,197,94,0.15)'
+        ? `${theme.colors.success}26` // 15% tint of the scheme's success
         : 'transparent';
   const fg =
     state === 'requested'
@@ -77,7 +77,28 @@ function SubCategoryRow({
   onToggle: () => void;
 }) {
   return (
-    <View className="flex-row items-center justify-between border-t border-border py-3">
+    <View
+      className="flex-row items-center justify-between border-t border-border py-3"
+      style={{opacity: available ? 1 : 0.4}}>
+      {sub.icon ? (
+        <View
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 14,
+            overflow: 'hidden',
+            marginRight: 12,
+            flexShrink: 0,
+          }}>
+          <AppImage
+            src={sub.icon}
+            fallbackIcon="construct-outline"
+            fallbackIconSize={22}
+            style={{width: '100%', height: '100%'}}
+            resizeMode="cover"
+          />
+        </View>
+      ) : null}
       <View className="flex-1 pr-3">
         <Text className="text-sm font-medium text-content">{sub.name}</Text>
         {sub.description ? (
@@ -113,7 +134,8 @@ function CategoryAccordion({
   onToggleRequest: (id: string) => void;
 }) {
   const {theme} = useTheme();
-  const available = category.isAvailable !== false;
+  // Reference: disabled={!category.isAvailable} — undefined means DISABLED.
+  const available = Boolean(category.isAvailable);
   const window = category.from && category.to
     ? `${formatTime12h(category.from)} – ${formatTime12h(category.to)}`
     : null;
@@ -177,7 +199,11 @@ export function ServiceCatalogScreen({navigation}: Props) {
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}} edges={['top']}>
-      <Header title="Services" onBack={() => navigation.goBack()} right={headerRight} />
+      <Header
+        title="Services"
+        onBack={navigation.canGoBack() ? () => navigation.goBack() : undefined}
+        right={headerRight}
+      />
 
       {vm.isLoading ? (
         <Loader label="Loading services…" />
@@ -210,7 +236,7 @@ export function ServiceCatalogScreen({navigation}: Props) {
               className="border-t border-border bg-background px-5 pb-6 pt-3"
               style={{backgroundColor: theme.colors.background}}>
               <Button
-                label={`Review Request (${vm.count})`}
+                label="Review Request"
                 onPress={() => navigation.navigate('ServiceReview')}
                 fullWidth
               />

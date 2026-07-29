@@ -65,11 +65,17 @@ export function AcScreen({navigation}: Props) {
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}} edges={['top']}>
-      <Header title="Climate" subtitle="Air conditioner" onBack={() => navigation.goBack()} />
+      <Header title="Air Conditioner" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{paddingHorizontal: 20, paddingBottom: 32}}>
         {/* Status */}
         <Card>
           <View className="flex-row items-end">
+            <Icon
+              name="thermometer-outline"
+              size={20}
+              color={theme.colors.textTertiary}
+              style={{marginBottom: 10, marginRight: 2}}
+            />
             <Text className="text-5xl font-bold text-content">{ac.currentTemp}°</Text>
             <Text className="mb-2 ml-1 text-lg text-content-tertiary">C</Text>
           </View>
@@ -98,7 +104,6 @@ export function AcScreen({navigation}: Props) {
               max={AC_TEMP.MAX}
               step={AC_TEMP.STEP}
               format={v => `${v}°C`}
-              disabled={!ac.isOn}
               onChange={ac.setTemp}
               accessibilityLabel="Target temperature"
             />
@@ -121,9 +126,6 @@ export function AcScreen({navigation}: Props) {
           </View>
         </View>
 
-        <Text className="mt-6 text-center text-xs text-content-tertiary">
-          Climate control is a preview — live control arrives when the room-climate API is enabled.
-        </Text>
       </ScrollView>
     </SafeAreaView>
   );

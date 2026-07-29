@@ -2,16 +2,20 @@ import React from 'react';
 import {ScrollView, Text, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
+import type {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {Button, Card, Header} from '../../components';
 import {useTheme} from '../../theme';
 import {config} from '../../constants/config';
+import type {HomeStackParamList} from '../../navigation/types';
 
-export function SettingsScreen() {
+type Props = NativeStackScreenProps<HomeStackParamList, 'Settings'>;
+
+export function SettingsScreen({navigation}: Props) {
   const {theme, scheme, toggleScheme} = useTheme();
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}} edges={['top']}>
-      <Header title="Settings" />
+      <Header title="Settings" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{paddingHorizontal: 20, paddingBottom: 32}}>
         <Card>
           <View className="flex-row items-center">

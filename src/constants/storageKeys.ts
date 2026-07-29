@@ -7,6 +7,7 @@ export const STORAGE_KEYS = {
   USER_PROFILE: 'cache.userProfile',
   THEME_SCHEME: 'settings.themeScheme',
   REMEMBERED_EMAIL: 'settings.rememberedEmail',
+  FOOD_CART: 'cache.foodCart',
 } as const;
 
 // Keychain service identifier for the auth token.

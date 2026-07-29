@@ -1,10 +1,11 @@
 import React from 'react';
-import {Alert, ScrollView, Text, View} from 'react-native';
+import {Pressable, ScrollView, Text, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Card, ErrorState, Header, Loader, Stepper, Toggle} from '../../components';
+import {Card, ErrorState, Header, Loader, Stepper, Toggle, toast} from '../../components';
 import {useRoomControl} from '../../viewmodels';
+import {useTVFocus} from '../../hooks/useTVFocus';
 import {useTheme} from '../../theme';
 import {DEVICE_TYPE, FAN_LEVEL} from '../../constants/roomControl';
 import type {RoomDevice} from '../../models/device.model';
@@ -22,13 +23,28 @@ function DeviceCard({
   onFanLevel: (d: RoomDevice, level: number) => void;
 }) {
   const {theme} = useTheme();
+  const {focused, onFocus, onBlur} = useTVFocus();
   const isFan = device.type === DEVICE_TYPE.FAN;
   return (
-    <View
+    // The whole tile is the power control — a D-pad should not have to land on
+    // the small switch. Fan speed keeps its own Stepper below.
+    <Pressable
+      onPress={() => onToggle(device)}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      focusable
+      accessibilityRole="switch"
+      accessibilityState={{checked: device.isOn}}
+      accessibilityLabel={`Toggle ${device.friendlyname ?? 'device'}`}
       className="mb-4 w-[48%] rounded-2xl bg-surface-elevated p-4"
       style={{
-        borderWidth: device.isOn ? 2 : 1,
-        borderColor: device.isOn ? theme.colors.primary : theme.colors.border,
+        // Always 2px so focus does not resize the tile.
+        borderWidth: 2,
+        borderColor: focused
+          ? theme.colors.focusRing
+          : device.isOn
+            ? theme.colors.primary
+            : theme.colors.border,
       }}>
       {device.isOffline ? (
         <View className="mb-1 flex-row items-center self-end">
@@ -54,7 +70,7 @@ function DeviceCard({
           size="sm"
           value={device.isOn}
           onValueChange={() => onToggle(device)}
-          accessibilityLabel={`Toggle ${device.friendlyname ?? 'device'}`}
+          interactive={false}
         />
       </View>
 
@@ -75,22 +91,27 @@ function DeviceCard({
           />
         </View>
       ) : null}
-    </View>
+    </Pressable>
   );
 }
 
 export function LightsScreen({navigation}: Props) {
   const {theme} = useTheme();
+  const {
+    focused: masterFocused,
+    onFocus: onMasterFocus,
+    onBlur: onMasterBlur,
+  } = useTVFocus();
   const room = useRoomControl();
 
   const onToggle = (device: RoomDevice) =>
-    room.toggleDevice(device).catch(() => Alert.alert('Error', 'Could not update the device.'));
+    room.toggleDevice(device).catch(() => toast.error('Could not update the device.'));
   const onMaster = () =>
-    room.toggleMaster().catch(() => Alert.alert('Error', 'Could not toggle the master scene.'));
+    room.toggleMaster().catch(() => toast.error('Could not toggle the master scene.'));
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}} edges={['top']}>
-      <Header title="Lights & Fans" onBack={() => navigation.goBack()} />
+      <Header title="Lights Control" onBack={() => navigation.goBack()} />
 
       {room.isLoading ? (
         <Loader label="Loading devices…" />
@@ -99,13 +120,43 @@ export function LightsScreen({navigation}: Props) {
       ) : (
         <ScrollView contentContainerStyle={{paddingHorizontal: 20, paddingBottom: 32}}>
           {room.master ? (
-            <Card className="mb-4 flex-row items-center justify-between">
-              <View className="flex-row items-center">
-                <Icon name="color-wand" size={22} color={theme.colors.primary} />
-                <Text className="ml-3 text-base font-semibold text-content">Master Scene</Text>
-              </View>
-              <Toggle value={room.masterOn} onValueChange={onMaster} accessibilityLabel="Master scene" />
-            </Card>
+            // Whole card toggles the master scene; the power button is now just
+            // the indicator.
+            <Pressable
+              onPress={onMaster}
+              onFocus={onMasterFocus}
+              onBlur={onMasterBlur}
+              focusable
+              accessibilityRole="switch"
+              accessibilityState={{checked: room.masterOn}}
+              accessibilityLabel="Master scene">
+              <Card
+                className="mb-4 flex-row items-center justify-between"
+                style={{
+                  borderWidth: 2,
+                  borderColor: masterFocused ? theme.colors.focusRing : theme.colors.border,
+                }}>
+                <View className="flex-1 pr-3">
+                  <Text className="text-sm font-semibold text-content">Master Scene</Text>
+                  <Text className="mt-0.5 text-xs text-content-tertiary">
+                    Turn on Master Scene, to turn on all the lights.
+                  </Text>
+                </View>
+                {/* Reference: round power button, amber when on. */}
+                <View
+                  className="h-11 w-11 items-center justify-center rounded-full"
+                  pointerEvents="none"
+                  style={{
+                    backgroundColor: room.masterOn ? theme.colors.primary : theme.colors.muted,
+                  }}>
+                  <Icon
+                    name="power"
+                    size={18}
+                    color={room.masterOn ? theme.colors.primaryForeground : '#ffffff'}
+                  />
+                </View>
+              </Card>
+            </Pressable>
           ) : null}
 
           {room.lights.length === 0 ? (

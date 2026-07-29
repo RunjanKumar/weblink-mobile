@@ -71,8 +71,14 @@ export function useChatViewModel() {
   const userId = user?._id ?? '';
 
   const addMessageIfNew = useCallback((msg: ChatMessage) => {
-    const key = msg.id || msg.tempId || '';
-    if (!key || messageIdsRef.current.has(key)) {
+    const key = msg.id || msg.tempId;
+    // No id from the server: it cannot be de-duplicated, but DROPPING it would
+    // lose a real incoming message — which is exactly how admin replies went
+    // missing. The web app shows it; so do we.
+    if (!key) {
+      return true;
+    }
+    if (messageIdsRef.current.has(key)) {
       return false;
     }
     messageIdsRef.current.add(key);
@@ -87,7 +93,11 @@ export function useChatViewModel() {
 
       messageIdsRef.current.clear();
       normalized.forEach(m => {
-        messageIdsRef.current.add(m.id);
+        // Never seed '' — one id-less history message would otherwise make the
+        // set treat every future id-less message as already seen.
+        if (m.id) {
+          messageIdsRef.current.add(m.id);
+        }
         if (m.tempId) {
           messageIdsRef.current.add(m.tempId);
         }
@@ -239,10 +249,12 @@ export function useChatViewModel() {
             };
             return updated;
           }
-          if (messageIdsRef.current.has(msg.id)) {
+          if (msg.id && messageIdsRef.current.has(msg.id)) {
             return prev;
           }
-          messageIdsRef.current.add(msg.id);
+          if (msg.id) {
+            messageIdsRef.current.add(msg.id);
+          }
           return [...prev, msg];
         });
         return;

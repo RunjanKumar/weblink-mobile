@@ -1,11 +1,15 @@
 import React from 'react';
-import {Alert, ScrollView, Text, View} from 'react-native';
+import {ScrollView, Text, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {Button, Card, Header} from '../../components';
+import type {NativeStackScreenProps} from '@react-navigation/native-stack';
+import {Button, Card, Header, dialog} from '../../components';
 import {useAuth} from '../../store/AuthContext';
 import {useTheme} from '../../theme';
 import {getDisplayName} from '../../models/user.model';
+import type {HomeStackParamList} from '../../navigation/types';
+
+type Props = NativeStackScreenProps<HomeStackParamList, 'Profile'>;
 
 function InfoRow({icon, label, value}: {icon: string; label: string; value?: string}) {
   const {theme} = useTheme();
@@ -20,20 +24,25 @@ function InfoRow({icon, label, value}: {icon: string; label: string; value?: str
   );
 }
 
-export function ProfileScreen() {
+export function ProfileScreen({navigation}: Props) {
   const {user, hotel, signOut} = useAuth();
   const {theme} = useTheme();
 
-  const confirmLogout = () => {
-    Alert.alert('Log out', 'Are you sure you want to log out?', [
-      {text: 'Cancel', style: 'cancel'},
-      {text: 'Log out', style: 'destructive', onPress: () => void signOut()},
-    ]);
+  const confirmLogout = async () => {
+    const confirmed = await dialog.confirm({
+      title: 'Log out',
+      message: 'Are you sure you want to log out?',
+      confirmLabel: 'Log out',
+      destructive: true,
+    });
+    if (confirmed) {
+      void signOut();
+    }
   };
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}} edges={['top']}>
-      <Header title="Profile" />
+      <Header title="Profile" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{paddingHorizontal: 20, paddingBottom: 32}}>
         {/* Avatar + name */}
         <View className="mb-6 items-center">

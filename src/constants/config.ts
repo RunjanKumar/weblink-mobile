@@ -1,4 +1,12 @@
-import {API_BASE_URL, SOCKET_URL, API_TIMEOUT, APP_ENV} from '@env';
+import {
+  API_BASE_URL,
+  SOCKET_URL,
+  API_TIMEOUT,
+  APP_ENV,
+  IMAGE_BASE_URL,
+  DEV_LOGIN_EMAIL,
+  DEV_LOGIN_PASSWORD,
+} from '@env';
 
 /**
  * Runtime configuration derived from build-time env vars (react-native-dotenv).
@@ -30,8 +38,24 @@ export const config = {
     'https://chat-hotel-automation.wattinventive.com',
   ),
   apiTimeout: Number(API_TIMEOUT) > 0 ? Number(API_TIMEOUT) : 20000,
+  // CDN prefixed onto the RELATIVE image paths the API returns (see
+  // utils/imageUrl.ts). Mirrors the admin panel's CDN_BASE_URL — the CloudFront
+  // distro in front of the nexgen-hotel S3 bucket.
+  imageBaseUrl: withFallback(
+    IMAGE_BASE_URL,
+    'IMAGE_BASE_URL',
+    'https://d36u10gu6pvj0x.cloudfront.net',
+  ).replace(/\/+$/, ''),
   appEnv,
   isProduction: appEnv === 'production',
+  // Test-login prefill for DEVELOPMENT builds only. The strings are inlined at
+  // build time by react-native-dotenv, so production builds must use a .env
+  // WITHOUT these keys (absence is safe: allowUndefined=true) — the runtime
+  // gate below then guarantees they are never used even if present.
+  devLogin:
+    appEnv === 'development' && DEV_LOGIN_EMAIL
+      ? {email: DEV_LOGIN_EMAIL, password: DEV_LOGIN_PASSWORD ?? ''}
+      : null,
 } as const;
 
 export type AppConfig = typeof config;

@@ -7,7 +7,12 @@ export type AuthStackParamList = {
   ForgotPassword: {email?: string} | undefined;
 };
 
-// Screens pushed on top of the Dashboard (inside the Home tab).
+/**
+ * ONE shared route map for every stack. The tab navigators below register
+ * SUBSETS of these routes at runtime (Food tab gets the food routes, etc.);
+ * sharing the type keeps every screen's Props stable regardless of which
+ * stack hosts it.
+ */
 export type HomeStackParamList = {
   Dashboard: undefined;
   Lights: undefined;
@@ -24,19 +29,27 @@ export type HomeStackParamList = {
   FacilityReserve: {facility: FacilityType};
   FacilityBookings: undefined;
   Chat: undefined;
-  Food: undefined;
+  /** `foodCategoryId` = quick-call deep link (reference dashboard behavior). */
+  Food: {foodCategoryId?: string} | undefined;
   FoodDetail: {food: Food};
   CouponDetail: {couponId: string};
   Cart: undefined;
   OrderHistory: undefined;
   Reception: undefined;
-};
-
-export type AppTabParamList = {
-  Home: NavigatorScreenParams<HomeStackParamList>;
-  Booking: undefined;
   Profile: undefined;
   Settings: undefined;
+};
+
+/**
+ * Reference `BottomNav.jsx` tab set: Home, Reception, Food, Facilities,
+ * Services. (Profile/Settings moved into the dashboard kebab menu.)
+ */
+export type AppTabParamList = {
+  Home: NavigatorScreenParams<HomeStackParamList>;
+  ReceptionTab: undefined;
+  FoodTab: NavigatorScreenParams<HomeStackParamList>;
+  FacilitiesTab: NavigatorScreenParams<HomeStackParamList>;
+  ServicesTab: NavigatorScreenParams<HomeStackParamList>;
 };
 
 // Enables typed `navigation`/`route` across the app.

@@ -3,18 +3,24 @@ import {useFoodOrder} from '../store/FoodOrderContext';
 import {useAuth} from '../store/AuthContext';
 import {foodRepository} from '../repositories/food.repository';
 import {openRazorpay} from '../services/paymentService';
+import {toast} from '../components/Toast';
 import {getLineTotal} from '../utils/discount';
 import {DISCOUNT_TYPES} from '../constants/food';
 import {getApiErrorMessage} from '../utils/errorHandler';
 import {getDisplayName} from '../models/user.model';
-import type {CartItem, CouponValidateData} from '../models/food.model';
+import type {CartItem, CouponItem} from '../models/food.model';
 
 export type PaymentMethod = 'online' | 'cod';
 
 /**
- * Cart ViewModel: bill math (with coupon/BOGO), coupon apply/remove, and order
- * placement (COD or Razorpay online). Ported from the web cart viewModel; the
- * `window.Razorpay` global is replaced by the native `openRazorpay` service.
+ * Cart ViewModel — the reference web `cartViewModel.js`, adapted:
+ *  - applied-coupon state lives in FoodOrderContext (any cart mutation
+ *    anywhere invalidates it atomically);
+ *  - bill math matches the reference exactly: tax base = backend
+ *    `summary.finalPayableAmount` when a coupon is applied, else the local
+ *    discount-aware items total;
+ *  - all feedback via toasts (reference strings verbatim) — never Alert;
+ *  - Razorpay failures surface visibly; the order survives as COD.
  */
 export function useCartViewModel() {
   const {
@@ -24,14 +30,13 @@ export function useCartViewModel() {
     updateFoodCartQuantity,
     removeFromFoodCart,
     clearFoodCart,
+    appliedCoupon,
+    setAppliedCoupon,
   } = useFoodOrder();
   const {user, hotel, session} = useAuth();
   const roomNumber = session?.booking?.roomData?.roomNumber ?? null;
 
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCouponName, setAppliedCouponName] = useState('');
-  const [couponResponse, setCouponResponse] = useState<CouponValidateData | null>(null);
-  const [couponError, setCouponError] = useState<string | null>(null);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
@@ -39,6 +44,8 @@ export function useCartViewModel() {
   const itemsTotal = getFoodCartTotal();
   const taxRate = Number(hotel?.bookedFoodOrderTax || 0);
 
+  const couponResponse = appliedCoupon?.response ?? null;
+  const appliedCouponName = appliedCoupon?.name ?? '';
   const summary = couponResponse?.summary;
   const backendFinalAmount = summary?.finalPayableAmount;
   const totalSavings = summary?.totalDiscount ?? 0;
@@ -50,107 +57,133 @@ export function useCartViewModel() {
 
   const itemCount = foodCart.reduce((count, item) => count + item.quantity, 0);
 
+  // Merge backend per-line coupon results (couponResponse.items) into cart
+  // rows so line totals show the server-priced amount when a coupon applies.
+  const couponItemMap = useMemo(() => {
+    const map = new Map<string, CouponItem>();
+    for (const ci of couponResponse?.items ?? []) {
+      if (ci.foodId) {
+        map.set(ci.foodId, ci);
+      }
+    }
+    return map;
+  }, [couponResponse]);
+
   const items = useMemo(
     () =>
-      foodCart.map(item => ({
-        ...item,
-        unitPrice: getCartUnitPrice(item),
-        // BOGO-aware so the row total matches getFoodCartTotal / payableAmount.
-        lineTotal: getLineTotal({
+      foodCart.map(item => {
+        const couponItem = couponItemMap.get(item.foodId ?? item.id) ?? null;
+        const baseLineTotal = getLineTotal({
           unitPrice: getCartUnitPrice(item),
           quantity: item.quantity,
           couponData: item.couponData,
-        }),
-      })),
-    [foodCart, getCartUnitPrice],
+        });
+        return {
+          ...item,
+          unitPrice: getCartUnitPrice(item),
+          // Backend finalPrice is already a LINE total (reference semantics).
+          lineTotal: couponItem?.finalPrice != null ? Math.round(couponItem.finalPrice) : baseLineTotal,
+          couponItem,
+        };
+      }),
+    [foodCart, getCartUnitPrice, couponItemMap],
   );
-
-  const invalidateCoupon = useCallback(() => {
-    setCouponResponse(null);
-    setAppliedCouponName('');
-  }, []);
 
   const increment = useCallback(
     (item: CartItem) => {
       const step = item.couponData?.discountType === DISCOUNT_TYPES.BOGO ? 2 : 1;
-      updateFoodCartQuantity(item.id, item.quantity + step);
-      invalidateCoupon();
+      updateFoodCartQuantity(item.id, item.quantity + step); // context invalidates coupon
     },
-    [updateFoodCartQuantity, invalidateCoupon],
+    [updateFoodCartQuantity],
   );
 
   const decrement = useCallback(
     (item: CartItem) => {
       updateFoodCartQuantity(item.id, item.quantity - 1);
-      invalidateCoupon();
     },
-    [updateFoodCartQuantity, invalidateCoupon],
+    [updateFoodCartQuantity],
   );
 
   const remove = useCallback(
     (item: CartItem) => {
       removeFromFoodCart(item.id);
-      invalidateCoupon();
     },
-    [removeFromFoodCart, invalidateCoupon],
+    [removeFromFoodCart],
   );
 
-  const onCouponChange = useCallback((raw: string) => {
-    setCouponCode(raw.replace(/\s/g, '').toUpperCase());
-    setAppliedCouponName('');
-    setCouponResponse(null);
-    setCouponError(null);
-  }, []);
+  const onCouponChange = useCallback(
+    (raw: string) => {
+      // Reference: strip whitespace, uppercase, and typing clears any applied coupon.
+      setCouponCode(raw.replace(/\s/g, '').toUpperCase());
+      setAppliedCoupon(null);
+    },
+    [setAppliedCoupon],
+  );
 
   const removeCoupon = useCallback(() => {
     setCouponCode('');
-    setAppliedCouponName('');
-    setCouponResponse(null);
-    setCouponError(null);
-  }, []);
+    setAppliedCoupon(null);
+    toast.success('Coupon removed.');
+  }, [setAppliedCoupon]);
 
   const applyCoupon = useCallback(async () => {
     const code = couponCode.trim();
-    setCouponError(null);
     if (!code) {
-      setCouponError('Please enter a coupon code.');
+      toast.error('Please enter a coupon code.');
       return;
     }
     if (code.length < 5) {
-      setCouponError('Coupon code must be at least 5 characters.');
+      toast.error('Coupon code must be 5 characters.');
       return;
     }
     const foodItems = foodCart
       .map(item => ({foodId: item.foodId || item.id, quantity: Number(item.quantity) || 1}))
       .filter(item => Boolean(item.foodId));
     if (foodItems.length === 0) {
-      setCouponError('Add food items before applying a coupon.');
+      toast.error('Please add food items before applying a coupon.');
       return;
     }
     setIsApplyingCoupon(true);
     try {
       const {ok, message, data} = await foodRepository.validateCoupon(foodItems, code);
-      if (!ok) {
-        invalidateCoupon();
-        setCouponError(message || 'Failed to apply coupon.');
+      if (!ok || !data) {
+        setAppliedCoupon(null);
+        toast.error(message || 'Failed to apply coupon.');
         return;
       }
-      setAppliedCouponName(code);
-      setCouponResponse(data);
+      setAppliedCoupon({name: code, response: data});
+      toast.success(
+        message || `Coupon applied! You save ₹${data.summary?.totalDiscount ?? 0}`,
+      );
     } catch (error) {
-      invalidateCoupon();
-      setCouponError(getApiErrorMessage(error, 'Failed to apply coupon.'));
+      setAppliedCoupon(null);
+      toast.error(getApiErrorMessage(error, 'Failed to apply coupon.'));
     } finally {
       setIsApplyingCoupon(false);
     }
-  }, [couponCode, foodCart, invalidateCoupon]);
+  }, [couponCode, foodCart, setAppliedCoupon]);
 
-  /** Places the order. Resolves once the order exists (payment may be COD fallback). */
+  /**
+   * Places the order. Resolves `true` once the order EXISTS (payment may fall
+   * back to COD); `false` when a guard blocked it — the caller must not show
+   * a success toast or navigate in that case.
+   */
   const placeOrder = useCallback(
-    async (method: PaymentMethod) => {
-      if (foodCart.length === 0 || isPlacingOrder || paymentProcessing) {
-        return;
+    async (method: PaymentMethod): Promise<boolean> => {
+      if (foodCart.length === 0) {
+        toast.error('Your cart is empty.');
+        return false;
       }
+      if (isPlacingOrder || paymentProcessing) {
+        return false;
+      }
+      if (!hotel?._id || roomNumber == null) {
+        // Never post "Room N/A" (reference bug class) — this is a broken session.
+        toast.error('Your room details are missing. Please log in again.');
+        return false;
+      }
+      // Read BEFORE createOrder: context clears the coupon when the cart clears.
+      const coupon = appliedCouponName || undefined;
       setIsPlacingOrder(true);
       try {
         const foodItems = foodCart.map(item => ({
@@ -159,15 +192,15 @@ export function useCartViewModel() {
           price: getCartUnitPrice(item),
         }));
         const orderId = await foodRepository.createOrder({
-          hotelId: hotel?._id,
+          hotelId: hotel._id,
           foodItems,
-          deliveryAddress: `Room ${roomNumber ?? 'N/A'}`,
-          coupon: appliedCouponName || undefined,
+          deliveryAddress: `Room ${roomNumber}`,
+          coupon,
         });
 
         if (method === 'cod') {
           clearFoodCart();
-          return;
+          return true;
         }
 
         setPaymentProcessing(true);
@@ -192,16 +225,21 @@ export function useCartViewModel() {
             },
             theme: {color: '#facc15'},
           });
+          setPaymentProcessing(true);
           await foodRepository.verifyPayment({
             foodOrderId: orderId,
             razorpayOrderId: result.razorpay_order_id,
             razorpayPaymentId: result.razorpay_payment_id,
             razorpaySignature: result.razorpay_signature,
           });
-        } catch {
-          // Cancelled or failed payment — the order already exists as COD.
+          toast.success('Payment verified successfully!');
+        } catch (error) {
+          // Cancelled / failed payment — the order survives as COD (backend
+          // creates every order COD-first). Reference behavior + strings.
+          toast.info('Order placed as Cash on Delivery.', {duration: 5000});
         }
         clearFoodCart();
+        return true;
       } finally {
         setIsPlacingOrder(false);
         setPaymentProcessing(false);
@@ -231,10 +269,12 @@ export function useCartViewModel() {
     couponCode,
     appliedCouponName,
     couponResponse,
-    couponError,
     isApplyingCoupon,
     isPlacingOrder,
     paymentProcessing,
+    roomNumber,
+    guestName: getDisplayName(user),
+    guestPhone: user?.phoneNumber ?? '',
     onCouponChange,
     applyCoupon,
     removeCoupon,

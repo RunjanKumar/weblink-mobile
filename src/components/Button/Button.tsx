@@ -67,9 +67,11 @@ export function Button({
   style,
   ...rest
 }: ButtonProps) {
-  const {theme} = useTheme();
+  const {theme, scheme} = useTheme();
   const {focused, onFocus: handleFocus, onBlur: handleBlur} = useTVFocus({onFocus, onBlur});
   const isDisabled = disabled || loading;
+  // A white ripple is invisible on the light theme's light button fills.
+  const ripple = scheme === 'dark' ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.10)';
 
   const indicatorColor =
     variant === 'primary' ? theme.colors.primaryForeground : theme.colors.primary;
@@ -83,7 +85,7 @@ export function Button({
       hasTVPreferredFocus={hasTVPreferredFocus}
       onFocus={handleFocus}
       onBlur={handleBlur}
-      android_ripple={{color: 'rgba(255,255,255,0.14)'}}
+      android_ripple={{color: ripple}}
       className={[
         'flex-row items-center justify-center rounded-xl',
         SIZE_CLASS[size],

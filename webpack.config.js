@@ -68,6 +68,15 @@ module.exports = (_env, argv = {}) => {
           __dirname,
           'src/shims/DateTimePicker.web.tsx',
         ),
+        // Reanimated is DEAD WEIGHT on webOS: 168 modules that fail to
+        // initialise here anyway (its `makeMutable` export never gets assigned,
+        // which is what used to crash the dashboard). Nothing in src/ imports
+        // it — it only enters the graph because gesture-handler does a
+        // `require` inside a try/catch. `false` hands webpack an empty module,
+        // which is exactly the case that require already handles: it checks for
+        // `useSharedValue`, does not find it, and falls back to its own
+        // implementation. Less to parse, less to hold in memory on the TV.
+        'react-native-reanimated': false,
         // Matches the `module-resolver` babel alias used by the native build.
         '@': path.resolve(__dirname, 'src'),
       },
@@ -104,7 +113,24 @@ module.exports = (_env, argv = {}) => {
               // harmony modules and `exports` blows up at runtime. Detect per file.
               sourceType: 'unambiguous',
               presets: [
-                ['@babel/preset-env', {targets: {chrome: '68'}, bugfixes: true}],
+                [
+                  '@babel/preset-env',
+                  {
+                    targets: {chrome: '68'},
+                    bugfixes: true,
+                    // preset-env only rewrites SYNTAX by default; it does not
+                    // add missing built-in METHODS. webOS ships an old Chromium
+                    // that lacks plenty of them — React Navigation's StackRouter
+                    // calls Array#findLastIndex (Chrome 97), and other deps use
+                    // findLast (97) and Object.fromEntries (73). Without these
+                    // polyfills the app throws "... is not a function" the first
+                    // time such a method is reached. 'entry' expands the single
+                    // `core-js/stable` import in index.web.js into exactly the
+                    // polyfills the target is missing.
+                    useBuiltIns: 'entry',
+                    corejs: {version: '3.49', proposals: false},
+                  },
+                ],
                 [
                   'module:@react-native/babel-preset',
                   {
@@ -136,12 +162,12 @@ module.exports = (_env, argv = {}) => {
                     allowUndefined: true,
                   },
                 ],
-                // Must stay last, exactly as in babel.config.js. Nothing imports
-                // reanimated on web today — Skeleton used to, and its module init
-                // does not complete in this bundle (makeMutable ends up
-                // unassigned) — but leaving the transform out is what makes that
-                // failure mode silent, so keep the two configs in agreement.
-                'react-native-reanimated/plugin',
+                // NOTE: babel.config.js (native) ends with
+                // 'react-native-reanimated/plugin'. It is deliberately absent
+                // here: reanimated is aliased away entirely for the web build
+                // (see resolve.alias), so the worklet transform would have
+                // nothing to transform and could only inject imports of a
+                // module this bundle no longer contains.
               ],
             },
           },

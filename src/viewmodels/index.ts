@@ -15,7 +15,6 @@ export {useLaundryOrdersViewModel} from './LaundryOrdersViewModel';
 export {useFacilitiesViewModel} from './FacilitiesViewModel';
 export {useReserveFacilityViewModel, PEOPLE_OPTIONS} from './ReserveFacilityViewModel';
 export {useBookedFacilityViewModel} from './BookedFacilityViewModel';
-export type {FacilityReservationGroup} from './BookedFacilityViewModel';
 export {useChatViewModel} from './ChatViewModel';
 export {useFoodMenuViewModel} from './FoodMenuViewModel';
 export {useCouponDetailViewModel} from './CouponDetailViewModel';

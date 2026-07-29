@@ -1,3 +1,5 @@
+import type {StatusTone} from '../theme/statusTones';
+
 export const LAUNDRY_SERVICE_TYPE_LABELS: Record<string, string> = {
   WASH: 'Wash',
   IRON: 'Iron',
@@ -15,13 +17,15 @@ export const LAUNDRY_ORDER_STATUS_LABELS: Record<string, string> = {
   CANCELLED: 'Cancelled',
 };
 
-export const LAUNDRY_ORDER_STATUS_COLORS: Record<string, string> = {
-  REQUESTED: '#f59e0b',
-  PICKED_UP: '#0ea5e9',
-  IN_PROCESS: '#3b82f6',
-  READY: '#a855f7',
-  DELIVERED: '#22c55e',
-  CANCELLED: '#ef4444',
+// Tone KEYS — resolve through `useStatusTones()` (theme-aware, light + dark).
+
+export const LAUNDRY_ORDER_STATUS_TONES: Record<string, StatusTone> = {
+  REQUESTED: 'warning',
+  PICKED_UP: 'sky',
+  IN_PROCESS: 'info',
+  READY: 'purple',
+  DELIVERED: 'success',
+  CANCELLED: 'danger',
 };
 
 /** Guest-facing progress order (CANCELLED sits outside the flow). */

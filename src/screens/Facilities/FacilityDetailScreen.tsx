@@ -1,32 +1,53 @@
 import React, {useState} from 'react';
-import {Image, Pressable, ScrollView, Text, View} from 'react-native';
+import {ScrollView, Text, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/Ionicons';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Button, Header} from '../../components';
+import {Button} from '../../components';
 import {useTheme} from '../../theme';
+import {IS_TV} from '../../utils/responsive';
 import {formatTime12h, formatDays} from '../../utils/format';
+import {FacilityHero} from './components/FacilityHero';
 import type {HomeStackParamList} from '../../navigation/types';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'FacilityDetail'>;
 
-function InfoRow({icon, label, value}: {icon: string; label: string; value?: string}) {
+/**
+ * Reference `InfoSection.jsx`: STACKED block — semibold label heading on its
+ * own line, value paragraph beneath. No icons, no card container.
+ */
+function InfoSection({label, value}: {label: string; value?: string | null}) {
   const {theme} = useTheme();
   if (!value) {
     return null;
   }
   return (
-    <View className="flex-row items-start py-3">
-      <Icon name={icon} size={18} color={theme.colors.primary} />
-      <Text className="ml-3 w-28 text-xs text-content-tertiary">{label}</Text>
-      <Text className="flex-1 text-sm text-content-secondary">{value}</Text>
+    <View style={{marginTop: 20}}>
+      <Text
+        style={{
+          color: theme.colors.text,
+          fontSize: IS_TV ? 20 : 17,
+          fontWeight: '600',
+          marginBottom: 4,
+        }}>
+        {label}
+      </Text>
+      <Text style={{color: theme.colors.textSecondary, fontSize: IS_TV ? 17 : 15, lineHeight: IS_TV ? 26 : 22}}>
+        {value}
+      </Text>
     </View>
   );
 }
 
+/**
+ * Facility detail — reference `FacilityDetail.jsx`: hero + overlay back,
+ * large accent-colored facility name, "Description" with an INLINE Show More /
+ * Show Less toggle, stacked info sections in the reference order (Type,
+ * Cuisine, Timings, Available Days, Location, Location Area, Pricing,
+ * Contact, Capacity, Area), then the availability CTA.
+ */
 export function FacilityDetailScreen({navigation, route}: Props) {
   const {theme} = useTheme();
-  const {facility, categoryName} = route.params;
+  const {facility} = route.params;
   const [expanded, setExpanded] = useState(false);
   const available = facility.isAvailable !== false;
 
@@ -39,49 +60,71 @@ export function FacilityDetailScreen({navigation, route}: Props) {
   const shownDescription = expanded || !isLong ? description : `${description.slice(0, 150)}…`;
 
   return (
-    <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}} edges={['top']}>
-      <Header title={facility.name ?? 'Facility'} subtitle={categoryName} onBack={() => navigation.goBack()} />
+    <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={{paddingBottom: 24}}>
-        {facility.image ? (
-          <Image source={{uri: facility.image}} style={{width: '100%', height: 200}} resizeMode="cover" />
-        ) : null}
+        <FacilityHero image={facility.image} onBack={() => navigation.goBack()} />
 
-        <View className="px-5 pt-4">
+        <View style={{paddingHorizontal: 20, paddingTop: 16}}>
+          <Text
+            style={{
+              color: theme.colors.primary,
+              fontSize: IS_TV ? 32 : 26,
+              fontWeight: '700',
+            }}>
+            {facility.name}
+          </Text>
+
           {description ? (
-            <>
-              <Text className="text-sm leading-5 text-content-secondary">{shownDescription}</Text>
-              {isLong ? (
-                <Pressable onPress={() => setExpanded(e => !e)} focusable accessibilityRole="button">
-                  <Text className="mt-1 text-xs font-semibold text-primary">
-                    {expanded ? 'Show less' : 'Show more'}
+            <View style={{marginTop: 20}}>
+              <Text
+                style={{
+                  color: theme.colors.text,
+                  fontSize: IS_TV ? 20 : 17,
+                  fontWeight: '600',
+                  marginBottom: 4,
+                }}>
+                Description
+              </Text>
+              <Text
+                style={{
+                  color: theme.colors.textSecondary,
+                  fontSize: IS_TV ? 17 : 15,
+                  lineHeight: IS_TV ? 26 : 22,
+                }}>
+                {shownDescription}
+                {isLong ? (
+                  <Text
+                    onPress={() => setExpanded(e => !e)}
+                    style={{color: theme.colors.primary, fontWeight: '600'}}>
+                    {' '}
+                    {expanded ? 'Show Less' : 'Show More'}
                   </Text>
-                </Pressable>
-              ) : null}
-            </>
+                ) : null}
+              </Text>
+            </View>
           ) : null}
 
-          <View className="mt-4 rounded-2xl border border-border bg-surface px-4">
-            <InfoRow icon="time-outline" label="Timings" value={timings} />
-            <InfoRow icon="calendar-outline" label="Days" value={formatDays(facility.days)} />
-            <InfoRow icon="restaurant-outline" label="Cuisine" value={facility.cuisine} />
-            <InfoRow icon="location-outline" label="Location" value={facility.location} />
-            <InfoRow
-              icon="pricetag-outline"
-              label="Pricing"
-              value={facility.pricing != null ? `₹ ${facility.pricing}` : undefined}
-            />
-            <InfoRow icon="call-outline" label="Contact" value={facility.phoneNumber} />
-            <InfoRow
-              icon="people-outline"
-              label="Capacity"
-              value={facility.capacity != null ? `${facility.capacity} people` : undefined}
-            />
-            <InfoRow icon="resize-outline" label="Area" value={facility.area} />
-          </View>
+          {/* Reference order (facilityDetailViewModel.js) */}
+          <InfoSection label="Type" value={facility.type} />
+          <InfoSection label="Cuisine" value={facility.cuisine} />
+          <InfoSection label="Timings" value={timings} />
+          <InfoSection label="Available Days" value={formatDays(facility.days)} />
+          <InfoSection label="Location" value={facility.location} />
+          <InfoSection label="Location Area" value={facility.locationlink} />
+          <InfoSection
+            label="Pricing"
+            value={facility.pricing != null ? `₹ ${facility.pricing}` : undefined}
+          />
+          <InfoSection label="Contact" value={facility.phoneNumber} />
+          <InfoSection
+            label="Capacity"
+            value={facility.capacity != null ? `${facility.capacity} people` : undefined}
+          />
+          <InfoSection label="Area" value={facility.area} />
 
-          <View className="mt-6">
+          <View style={{marginTop: 28}}>
             <Button
-              label={available ? 'Check availability' : 'Currently unavailable'}
+              label={available ? 'Check Availability' : 'Currently unavailable'}
               disabled={!available}
               onPress={() => navigation.navigate('FacilityReserve', {facility})}
               fullWidth

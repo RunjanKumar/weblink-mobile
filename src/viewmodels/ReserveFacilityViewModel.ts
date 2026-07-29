@@ -1,13 +1,30 @@
 import {useState} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {facilityRepository} from '../repositories/facility.repository';
+import {toast} from '../components/Toast';
 import type {FacilityType} from '../models/facility.model';
 
+/** Reference guest options (`reserveViewModel.js`). */
 export const PEOPLE_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20];
 
+function pad(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
 /**
- * Reserve-a-facility form ViewModel. Holds the chosen date-time + guest count and
- * submits the reservation (payload derived from the facility type).
+ * The backend (and the web app's bookings list, which string-splits on 'T')
+ * expects a NAIVE LOCAL "YYYY-MM-DDTHH:mm" — `toISOString()` shifts to UTC and
+ * made mobile bookings show the wrong hour on the web (reference posts the raw
+ * `<input type="datetime-local">` value).
+ */
+export function toLocalDateTimeString(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/**
+ * Reserve-a-facility form ViewModel — reference `reserveViewModel.js`:
+ * one combined date-time value + guest count; validation via toasts with the
+ * reference strings; resolves `true` when the reservation was submitted.
  */
 export function useReserveFacilityViewModel(facility: FacilityType) {
   const queryClient = useQueryClient();
@@ -19,7 +36,7 @@ export function useReserveFacilityViewModel(facility: FacilityType) {
       facilityRepository.reserve({
         facilityId: facility.facilityId,
         facilityTypeId: facility._id,
-        bookingDate: (bookingDate as Date).toISOString(),
+        bookingDate: toLocalDateTimeString(bookingDate as Date),
         numberOfGuests: numberOfPeople as number,
       }),
     onSuccess: () => {
@@ -27,14 +44,17 @@ export function useReserveFacilityViewModel(facility: FacilityType) {
     },
   });
 
-  const submit = () => {
+  const submit = async (): Promise<boolean> => {
     if (!bookingDate) {
-      return Promise.reject(new Error('Please select a date and time.'));
+      toast.error('Please select date and time');
+      return false;
     }
     if (!numberOfPeople) {
-      return Promise.reject(new Error('Please select the number of guests.'));
+      toast.error('Please select number of people');
+      return false;
     }
-    return mutation.mutateAsync();
+    await mutation.mutateAsync();
+    return true;
   };
 
   return {

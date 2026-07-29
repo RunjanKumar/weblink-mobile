@@ -5,6 +5,7 @@ import {customerRepository} from '../repositories/customer.repository';
 import {roomRepository} from '../repositories/room.repository';
 import {REDIRECT_TYPES} from '../constants/roomControl';
 import {getApiErrorMessage} from '../utils/errorHandler';
+import {IS_WEB_BUILD} from '../utils/responsive';
 import {logger} from '../services/logger';
 import type {QuickCall} from '../models/device.model';
 
@@ -21,6 +22,8 @@ export function useDashboardViewModel() {
   const quickCallsQuery = useQuery({
     queryKey: ['room', 'quickCalls'],
     queryFn: () => roomRepository.getQuickCalls(),
+    // The webOS dashboard does not render the quick-call row, so don't fetch it.
+    enabled: !IS_WEB_BUILD,
   });
 
   const profile = profileQuery.data ?? null;
@@ -50,7 +53,11 @@ export function useDashboardViewModel() {
     hotel: profile?.hotelData ?? null,
     roomNumber: room?.roomNumber ?? null,
     quickCalls: quickCallsQuery.data ?? [],
+    // Per-section flags: a profile failure must NOT blank the whole
+    // dashboard (reference renders an inline greeting error and keeps the
+    // door/scenes/quick sections alive).
     isLoading: profileQuery.isLoading,
+    profileError: profileQuery.isError ? getApiErrorMessage(profileQuery.error) : null,
     isRefetching: profileQuery.isRefetching || quickCallsQuery.isRefetching,
     error: profileQuery.isError ? getApiErrorMessage(profileQuery.error) : null,
     refetch: () => {

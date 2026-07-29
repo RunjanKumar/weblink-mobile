@@ -4,7 +4,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from './src/components';
-import { ThemeProvider } from './src/theme';
+import { DialogProvider } from './src/components/AppDialog';
+import { ToastHost } from './src/components/Toast';
+import { ThemeProvider, useTheme } from './src/theme';
 import { AuthProvider } from './src/store/AuthContext';
 import { SocketProvider } from './src/store/SocketContext';
 import { ServiceRequestProvider } from './src/store/ServiceRequestContext';
@@ -23,6 +25,17 @@ import { queryClient } from './src/services/queryClient';
  *   ThemeProvider           – design tokens (dark by default)
  *   AuthProvider            – session state; drives RootNavigator's auth switch
  */
+/** Status bar that follows the active scheme (dark icons on the light theme). */
+function ThemedStatusBar() {
+  const { theme, scheme } = useTheme();
+  return (
+    <StatusBar
+      barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'}
+      backgroundColor={theme.colors.background}
+    />
+  );
+}
+
 export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -34,8 +47,11 @@ export default function App() {
                 <SocketProvider>
                   <ServiceRequestProvider>
                     <FoodOrderProvider>
-                      <StatusBar barStyle="light-content" backgroundColor="#0d0d0d" />
-                      <RootNavigator />
+                      <DialogProvider>
+                        <ThemedStatusBar />
+                        <RootNavigator />
+                        <ToastHost />
+                      </DialogProvider>
                     </FoodOrderProvider>
                   </ServiceRequestProvider>
                 </SocketProvider>

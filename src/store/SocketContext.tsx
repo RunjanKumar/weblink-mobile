@@ -3,7 +3,6 @@ import React, {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
 import NetInfo from '@react-native-community/netinfo';
@@ -24,23 +23,26 @@ const SocketContext = createContext<SocketValue | undefined>(undefined);
  * Owns the socket lifecycle: connects when authenticated, disconnects on logout,
  * and derives a connection status from socket + NetInfo events (replacing the
  * web's navigator.onLine / window online-offline listeners).
+ *
+ * THE SOCKET IS THE AUTHORITY, not NetInfo. On webOS NetInfo has no real signal
+ * to work with — its web module explicitly opts out of the browser connection
+ * API for webOS and falls back to `navigator.onLine`, which a packaged file://
+ * app reports unreliably. Letting that flip the status to 'offline' used to
+ * unregister ChatViewModel's `newMessage` listener, so admin replies silently
+ * stopped arriving while sending still worked (emit checks the real socket, not
+ * this status). NetInfo now only informs `isOnline`, which is presentation.
  */
 export function SocketProvider({children}: {children: React.ReactNode}) {
   const {isAuthenticated, session} = useAuth();
   const token = session?.token ?? null;
 
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
-  const [isOnline, setIsOnline] = useState(true);
-  const onlineRef = useRef(true);
+  // Reported by the socket itself — the only thing that knows if realtime works.
+  const [socketStatus, setSocketStatus] = useState<ConnectionStatus>('disconnected');
+  const [networkOnline, setNetworkOnline] = useState(true);
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
-      const online = Boolean(state.isConnected);
-      onlineRef.current = online;
-      setIsOnline(online);
-      if (!online) {
-        setConnectionStatus('offline');
-      }
+      setNetworkOnline(Boolean(state.isConnected));
     });
     return () => unsubscribe();
   }, []);
@@ -48,39 +50,49 @@ export function SocketProvider({children}: {children: React.ReactNode}) {
   useEffect(() => {
     if (!isAuthenticated || !token) {
       socketService.disconnect();
-      setConnectionStatus('disconnected');
+      setSocketStatus('disconnected');
       return;
     }
 
     const sock = socketService.connect(token);
-    const onConnect = () => setConnectionStatus('connected');
-    const onDisconnect = () =>
-      setConnectionStatus(onlineRef.current ? 'disconnected' : 'offline');
-    const onReconnectAttempt = () => setConnectionStatus('reconnecting');
+    const onConnect = () => setSocketStatus('connected');
+    const onDisconnect = () => setSocketStatus('disconnected');
+    const onConnectError = () => setSocketStatus('disconnected');
+    const onReconnectAttempt = () => setSocketStatus('reconnecting');
+    const onReconnect = () => setSocketStatus('connected');
+    const onReconnectFailed = () => setSocketStatus('disconnected');
 
     sock.on('connect', onConnect);
     sock.on('disconnect', onDisconnect);
+    sock.on('connect_error', onConnectError);
     sock.io.on('reconnect_attempt', onReconnectAttempt);
+    sock.io.on('reconnect', onReconnect);
+    sock.io.on('reconnect_failed', onReconnectFailed);
     if (sock.connected) {
-      setConnectionStatus('connected');
+      setSocketStatus('connected');
     }
 
     return () => {
       sock.off('connect', onConnect);
       sock.off('disconnect', onDisconnect);
+      sock.off('connect_error', onConnectError);
       sock.io.off('reconnect_attempt', onReconnectAttempt);
+      sock.io.off('reconnect', onReconnect);
+      sock.io.off('reconnect_failed', onReconnectFailed);
     };
   }, [isAuthenticated, token]);
 
-  const value = useMemo<SocketValue>(
-    () => ({
-      connectionStatus,
-      isOnline,
-      isConnected: connectionStatus === 'connected',
-      socketService,
-    }),
-    [connectionStatus, isOnline],
-  );
+  const value = useMemo<SocketValue>(() => {
+    const isConnected = socketStatus === 'connected';
+    // A live socket proves we are online, whatever the platform claims.
+    const isOnline = networkOnline || isConnected;
+    const connectionStatus: ConnectionStatus = isConnected
+      ? 'connected'
+      : isOnline
+        ? socketStatus
+        : 'offline';
+    return {connectionStatus, isOnline, isConnected, socketService};
+  }, [socketStatus, networkOnline]);
 
   return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>;
 }

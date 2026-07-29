@@ -27,7 +27,9 @@ export function useFoodMenuViewModel() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) {
-      return categories;
+      // Reference always drops empty categories (foodListViewModel.js) — an
+      // empty section would still get a tab + a bare heading otherwise.
+      return categories.filter(cat => (cat.foodsInCategories ?? []).length > 0);
     }
     return categories
       .map(cat => ({

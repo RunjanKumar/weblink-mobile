@@ -62,24 +62,44 @@ export const darkColors: ThemeColors = {
   overlay: 'rgba(0,0,0,0.6)',
 };
 
-// Light theme is "future ready" per the spec — not the default, but fully defined
-// so switching is a one-line change once light-mode UI is validated.
+/**
+ * Light theme — designed for the 10-foot TV UI (client requirement), following
+ * how the TV platforms do light appearance:
+ *
+ *  - Background is OFF-white, not #fff. Large pure-white fields glare on a TV
+ *    panel (tvOS light uses ~#F2F2F7 system backgrounds; LG's own webOS system
+ *    UI is off-white). Cards are the only pure white, so they read as elevated.
+ *  - Text is near-black, not #000 (harsh on white at TV brightness).
+ *  - The amber brand CANNOT stay #facc15 on white (≈1.8:1 — invisible, as the
+ *    on-TV photo showed). Amber-700 (#a16207) keeps the gold identity at ≈5:1.
+ *  - Status colors move to their 700-weight variants for the same reason
+ *    (#22c55e green is 2.2:1 on white; #15803d is 4.6:1).
+ *  - Focus ring is near-black: an amber ring vanishes against the gold buttons
+ *    and barely registers on white cards; a dark ring is visible on both, and
+ *    the existing scale bump (Button/tiles) supplies the tvOS-style "lift".
+ *
+ * Every text token here is ≥4.5:1 (WCAG AA) on the surface it sits on.
+ */
 export const lightColors: ThemeColors = {
-  background: '#f7f7f8',
+  background: '#f2f3f5',
   surface: '#ffffff',
-  surfaceElevated: '#ffffff',
-  border: '#e5e7eb',
-  primary: '#b8860b',
-  primaryForeground: '#ffffff',
-  primaryMuted: '#d4a017',
-  text: '#0d0d0d',
-  textSecondary: '#374151',
-  textTertiary: '#6b7280',
-  muted: '#9ca3af',
-  danger: '#dc2626',
-  success: '#16a34a',
-  warning: '#d97706',
-  info: '#2563eb',
-  focusRing: '#b8860b',
-  overlay: 'rgba(0,0,0,0.4)',
+  // Inset wells/chips ON white cards — darker than surface, inverting the dark
+  // theme's "elevated is lighter" relationship, which is correct for light UI.
+  surfaceElevated: '#eceef1',
+  // Slightly darker than a typical web hairline — TV picture processing washes
+  // out subtle brightness deltas, so card edges need more presence at 10 feet.
+  border: '#d6dade',
+  primary: '#a16207', // amber-700 — 5.0:1 on white, keeps the gold brand
+  primaryForeground: '#ffffff', // 5.0:1 on primary
+  primaryMuted: '#854d0e',
+  text: '#1b1d22', // ≈16:1
+  textSecondary: '#3f4450', // ≈9:1
+  textTertiary: '#5b616c', // ≈6:1
+  muted: '#778089', // placeholders / disabled — ≈4.2:1
+  danger: '#b91c1c', // red-700 — 5.8:1 even on the page background
+  success: '#15803d', // green-700 — 4.6:1
+  warning: '#b45309', // amber-700 family
+  info: '#1d4ed8', // blue-700 — 6.3:1
+  focusRing: '#1b1d22',
+  overlay: 'rgba(17,19,24,0.45)',
 };

@@ -1,7 +1,16 @@
-import React, {createContext, useCallback, useContext, useMemo, useState} from 'react';
+import React, {createContext, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import {getEffectivePrice, getLineTotal} from '../utils/discount';
 import {DISCOUNT_TYPES} from '../constants/food';
-import type {CartItem} from '../models/food.model';
+import {storage} from '../services/storage.service';
+import {STORAGE_KEYS} from '../constants/storageKeys';
+import {useAuth} from './AuthContext';
+import type {CartItem, CouponValidateData} from '../models/food.model';
+
+/** Server-validated coupon currently applied to the cart. */
+export interface AppliedCoupon {
+  name: string;
+  response: CouponValidateData;
+}
 
 interface FoodOrderValue {
   foodCart: CartItem[];
@@ -16,6 +25,14 @@ interface FoodOrderValue {
   getFoodItemTotal: (item: CartItem) => number;
   getItemQuantity: (id: string) => number;
   isBogo: (item: CartItem) => boolean;
+  /**
+   * Coupon state lives HERE (not in a screen viewmodel) so that EVERY cart
+   * mutation — including adds from the menu/detail/coupon screens — atomically
+   * invalidates it (reference behavior: "any cart mutation invalidates the
+   * applied coupon"). Not persisted: must be revalidated server-side.
+   */
+  appliedCoupon: AppliedCoupon | null;
+  setAppliedCoupon: (coupon: AppliedCoupon | null) => void;
 }
 
 const FoodOrderContext = createContext<FoodOrderValue | undefined>(undefined);
@@ -25,7 +42,30 @@ const FoodOrderContext = createContext<FoodOrderValue | undefined>(undefined);
  * line items; BOGO items start at qty 2, increment by 2, decrement by 1.
  */
 export function FoodOrderProvider({children}: {children: React.ReactNode}) {
-  const [foodCart, setFoodCart] = useState<CartItem[]>([]);
+  // Cart persists (a webOS suspend/reload must not empty it); coupon does not.
+  const [foodCart, setFoodCart] = useState<CartItem[]>(
+    () => storage.getObject<CartItem[]>(STORAGE_KEYS.FOOD_CART) ?? [],
+  );
+  const [appliedCoupon, setAppliedCouponState] = useState<AppliedCoupon | null>(null);
+  const {status: authStatus} = useAuth();
+
+  useEffect(() => {
+    storage.setObject(STORAGE_KEYS.FOOD_CART, foodCart);
+  }, [foodCart]);
+
+  // A signed-out (or next) guest must never inherit a cart.
+  useEffect(() => {
+    if (authStatus === 'unauthenticated') {
+      setFoodCart([]);
+      setAppliedCouponState(null);
+      storage.remove(STORAGE_KEYS.FOOD_CART);
+    }
+  }, [authStatus]);
+
+  const setAppliedCoupon = useCallback(
+    (coupon: AppliedCoupon | null) => setAppliedCouponState(coupon),
+    [],
+  );
 
   const isBogo = useCallback(
     (item: CartItem) => item?.couponData?.discountType === DISCOUNT_TYPES.BOGO,
@@ -55,6 +95,7 @@ export function FoodOrderProvider({children}: {children: React.ReactNode}) {
   const addToFoodCart = useCallback(
     (item: Omit<CartItem, 'quantity'> & {quantity?: number}) => {
       const step = item?.couponData?.discountType === DISCOUNT_TYPES.BOGO ? 2 : 1;
+      setAppliedCouponState(null); // any mutation invalidates the coupon
       setFoodCart(prev => {
         const existing = prev.find(c => c.id === item.id);
         if (existing) {
@@ -69,6 +110,7 @@ export function FoodOrderProvider({children}: {children: React.ReactNode}) {
   );
 
   const removeFromFoodCart = useCallback((id: string) => {
+    setAppliedCouponState(null);
     setFoodCart(prev => prev.filter(item => item.id !== id));
   }, []);
 
@@ -78,16 +120,21 @@ export function FoodOrderProvider({children}: {children: React.ReactNode}) {
         removeFromFoodCart(id);
         return;
       }
+      setAppliedCouponState(null);
       setFoodCart(prev => prev.map(item => (item.id === id ? {...item, quantity} : item)));
     },
     [removeFromFoodCart],
   );
 
   const updateFoodCartItem = useCallback((id: string, updates: Partial<CartItem>) => {
+    setAppliedCouponState(null);
     setFoodCart(prev => prev.map(item => (item.id === id ? {...item, ...updates} : item)));
   }, []);
 
-  const clearFoodCart = useCallback(() => setFoodCart([]), []);
+  const clearFoodCart = useCallback(() => {
+    setAppliedCouponState(null);
+    setFoodCart([]);
+  }, []);
 
   const getFoodCartTotal = useCallback(
     () => foodCart.reduce((total, item) => total + getFoodItemTotal(item), 0),
@@ -118,6 +165,8 @@ export function FoodOrderProvider({children}: {children: React.ReactNode}) {
       getFoodItemTotal,
       getItemQuantity,
       isBogo,
+      appliedCoupon,
+      setAppliedCoupon,
     }),
     [
       foodCart,
@@ -132,6 +181,8 @@ export function FoodOrderProvider({children}: {children: React.ReactNode}) {
       getFoodItemTotal,
       getItemQuantity,
       isBogo,
+      appliedCoupon,
+      setAppliedCoupon,
     ],
   );
 

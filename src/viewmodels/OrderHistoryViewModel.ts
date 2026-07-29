@@ -1,8 +1,11 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {useIsFocused} from '@react-navigation/native';
 import {foodRepository} from '../repositories/food.repository';
 import {useAuth} from '../store/AuthContext';
 import {openRazorpay} from '../services/paymentService';
+import {toast} from '../components/Toast';
+import {IS_TV} from '../utils/responsive';
 import {BOOKING_STATUS} from '../constants/status';
 import {TRANSACTION_STATUS} from '../constants/food';
 import {getApiErrorMessage} from '../utils/errorHandler';
@@ -10,39 +13,40 @@ import {getDisplayName} from '../models/user.model';
 import type {FoodOrder} from '../models/food.model';
 
 /**
- * Order history ViewModel: fetch orders, poll every 30s while any order is active,
- * and allow paying/retrying online (Razorpay) for pending/failed payments.
+ * Order history ViewModel — reference `orderHistoryViewModel.js`:
+ * fetch orders, poll every 30 s while any order is active (React Query
+ * `refetchInterval`, gated on screen focus so a backgrounded screen stops
+ * polling), and pay/retry online for pending/failed payments.
+ *
+ * TV: `canPayOnline` is always false — Razorpay's checkout iframe cannot be
+ * driven by a remote, so the CTA must never render there.
  */
 export function useOrderHistoryViewModel() {
   const {user, hotel} = useAuth();
+  const isFocused = useIsFocused();
+  const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
+
   const query = useQuery({
     queryKey: ['food', 'orders'],
     queryFn: () => foodRepository.getOrders(),
+    refetchInterval: queryState => {
+      if (!isFocused || payingOrderId) {
+        return false;
+      }
+      const hasActive = (queryState.state.data ?? []).some(
+        o => o.status === BOOKING_STATUS.PENDING || o.status === BOOKING_STATUS.IN_PROGRESS,
+      );
+      return hasActive ? 30000 : false;
+    },
   });
   const orders = useMemo(() => query.data ?? [], [query.data]);
-  const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
 
-  // Poll every 30s while there are active orders and no payment in flight.
-  useEffect(() => {
-    const hasActive = orders.some(
-      o => o.status === BOOKING_STATUS.PENDING || o.status === BOOKING_STATUS.IN_PROGRESS,
-    );
-    if (!hasActive || payingOrderId) {
-      return undefined;
-    }
-    const id = setInterval(() => {
-      void query.refetch();
-    }, 30000);
-    return () => clearInterval(id);
-  }, [orders, payingOrderId, query]);
+  const hasPendingPayment = useMemo(
+    () => !IS_TV && orders.some(o => canPay(o)),
+    [orders],
+  );
 
-  const canPayOnline = useCallback((order: FoodOrder) => {
-    const paymentNotDone =
-      order.paymentStatus === TRANSACTION_STATUS.PENDING ||
-      order.paymentStatus === TRANSACTION_STATUS.FAILED;
-    const active = order.status === BOOKING_STATUS.PENDING || order.status === BOOKING_STATUS.IN_PROGRESS;
-    return paymentNotDone && active;
-  }, []);
+  const canPayOnline = useCallback((order: FoodOrder) => !IS_TV && canPay(order), []);
 
   const payOnline = useCallback(
     async (order: FoodOrder) => {
@@ -76,10 +80,13 @@ export function useOrderHistoryViewModel() {
             razorpayPaymentId: result.razorpay_payment_id,
             razorpaySignature: result.razorpay_signature,
           });
-        } catch {
-          // Cancelled/failed — refresh will reflect the real status.
+          toast.success('Payment successful! 🎉');
+        } catch (error) {
+          toast.error(getApiErrorMessage(error, 'Payment was not completed.'));
         }
         await query.refetch();
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, 'Failed to initiate payment.'));
       } finally {
         setPayingOrderId(null);
       }
@@ -93,8 +100,18 @@ export function useOrderHistoryViewModel() {
     isRefetching: query.isRefetching,
     error: query.isError ? getApiErrorMessage(query.error, 'Failed to load orders.') : null,
     refetch: query.refetch,
+    hasPendingPayment,
     canPayOnline,
     payOnline,
     payingOrderId,
   };
+}
+
+function canPay(order: FoodOrder): boolean {
+  const paymentNotDone =
+    order.paymentStatus === TRANSACTION_STATUS.PENDING ||
+    order.paymentStatus === TRANSACTION_STATUS.FAILED;
+  const active =
+    order.status === BOOKING_STATUS.PENDING || order.status === BOOKING_STATUS.IN_PROGRESS;
+  return paymentNotDone && active;
 }

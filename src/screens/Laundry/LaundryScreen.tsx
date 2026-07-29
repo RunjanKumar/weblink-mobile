@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -10,9 +9,8 @@ import {
   View,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/Ionicons';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Button, Card, ErrorState, Header, Loader, Stepper, Toggle} from '../../components';
+import {Button, Card, ErrorState, Header, Loader, Stepper, Toggle, toast} from '../../components';
 import {useLaundryViewModel} from '../../viewmodels';
 import {useTVFocus} from '../../hooks/useTVFocus';
 import {useTheme} from '../../theme';
@@ -48,13 +46,17 @@ function ServiceChip({
         borderRadius: 999,
         marginRight: 8,
         marginBottom: 8,
-        backgroundColor: active ? theme.colors.primary : theme.colors.surfaceElevated,
-        borderWidth: 2,
-        borderColor: focused ? theme.colors.focusRing : 'transparent',
+        backgroundColor: active ? `${theme.colors.primary}26` : 'transparent',
+        borderWidth: active ? 1.5 : 1,
+        borderColor: focused
+          ? theme.colors.focusRing
+          : active
+            ? theme.colors.primary
+            : theme.colors.border,
       }}>
       <Text
         style={{
-          color: active ? theme.colors.primaryForeground : theme.colors.textTertiary,
+          color: active ? theme.colors.primary : theme.colors.textTertiary,
           fontSize: 12,
           fontWeight: '600',
         }}>
@@ -64,6 +66,12 @@ function ServiceChip({
   );
 }
 
+/**
+ * Reference LaundryItemCard: collapsed = name + "from ₹x per unit" + Add;
+ * selected = stepper top-right, selected-rate subtitle, service chips,
+ * "Remove" text link + line amount. Stepper min 0 — the viewmodel removes
+ * the line when qty hits 0.
+ */
 function RateItemCard({
   item,
   line,
@@ -84,33 +92,36 @@ function RateItemCard({
   onServiceType: (serviceType: string) => void;
 }) {
   const {theme} = useTheme();
+  const {focused, onFocus, onBlur} = useTVFocus();
   const inBasket = Boolean(line);
+  const unit = item.unit || 'pc';
   const lineAmount = line ? rateFor(item, line.serviceType) * line.qty : 0;
 
   return (
     <Card className="mb-3">
       <View className="flex-row items-center justify-between">
         <View className="flex-1 pr-3">
-          <Text className="text-sm font-bold text-content">{item.name}</Text>
-          {!inBasket ? (
-            <Text className="mt-0.5 text-xs text-content-tertiary">
-              from ₹{cheapest}
-              {item.unit ? ` per ${item.unit}` : ''}
-            </Text>
-          ) : null}
+          <Text className="text-sm font-bold capitalize text-content">{item.name}</Text>
+          <Text className="mt-0.5 text-xs text-content-tertiary">
+            {line
+              ? `₹${rateFor(item, line.serviceType)} per ${unit}`
+              : `from ₹${cheapest} per ${unit}`}
+          </Text>
         </View>
         {!inBasket ? (
           <Button label="Add" size="sm" variant="secondary" onPress={onAdd} />
-        ) : (
-          <Pressable
-            onPress={onRemove}
-            focusable
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={`Remove ${item.name ?? 'item'}`}>
-            <Icon name="trash-outline" size={20} color={theme.colors.danger} />
-          </Pressable>
-        )}
+        ) : line ? (
+          <View style={{width: 130}}>
+            <Stepper
+              value={line.qty}
+              min={0}
+              max={99}
+              step={1}
+              onChange={onQty}
+              accessibilityLabel={`${item.name ?? 'Item'} quantity`}
+            />
+          </View>
+        ) : null}
       </View>
 
       {inBasket && line ? (
@@ -125,17 +136,23 @@ function RateItemCard({
               />
             ))}
           </View>
-          <View className="mt-2 flex-row items-center justify-between">
-            <View style={{width: 150}}>
-              <Stepper
-                value={line.qty}
-                min={1}
-                max={99}
-                step={1}
-                onChange={onQty}
-                accessibilityLabel="Quantity"
-              />
-            </View>
+          <View className="mt-1 flex-row items-center justify-between">
+            <Pressable
+              onPress={onRemove}
+              onFocus={onFocus}
+              onBlur={onBlur}
+              focusable
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${item.name ?? 'item'}`}
+              style={{
+                borderRadius: 6,
+                paddingHorizontal: 4,
+                borderWidth: 2,
+                borderColor: focused ? theme.colors.focusRing : 'transparent',
+              }}>
+              <Text className="text-xs text-content-tertiary">Remove</Text>
+            </Pressable>
             <Text className="text-sm font-bold text-primary">₹{lineAmount}</Text>
           </View>
         </View>
@@ -147,12 +164,16 @@ function RateItemCard({
 export function LaundryScreen({navigation}: Props) {
   const {theme} = useTheme();
   const vm = useLaundryViewModel();
+  const expressFocus = useTVFocus();
 
   const onSubmit = () => {
     vm.submit()
-      .then(() => navigation.navigate('LaundryOrders'))
+      .then(() => {
+        toast.success('Your laundry pickup has been requested.');
+        navigation.navigate('LaundryOrders');
+      })
       .catch(error =>
-        Alert.alert('Error', getApiErrorMessage(error, 'Could not place your laundry request.')),
+        toast.error(getApiErrorMessage(error, 'Could not place your laundry request.')),
       );
   };
 
@@ -169,7 +190,12 @@ export function LaundryScreen({navigation}: Props) {
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}} edges={['top']}>
-      <Header title="Laundry" onBack={() => navigation.goBack()} right={headerRight} />
+      <Header
+        title="Laundry"
+        subtitle="Charges are added to your room bill."
+        onBack={() => navigation.goBack()}
+        right={headerRight}
+      />
 
       {vm.isLoading ? (
         <Loader label="Loading rate list…" />
@@ -203,47 +229,66 @@ export function LaundryScreen({navigation}: Props) {
             })}
 
             {vm.summary.lines.length > 0 ? (
-              <Card className="mt-2">
-                <View className="flex-row items-center justify-between">
+              <>
+                {/* Reference: the whole express card toggles, not just the switch. */}
+                <Pressable
+                  onPress={() => vm.setIsExpress(!vm.isExpress)}
+                  onFocus={expressFocus.onFocus}
+                  onBlur={expressFocus.onBlur}
+                  focusable
+                  accessibilityRole="switch"
+                  accessibilityState={{checked: vm.isExpress}}
+                  accessibilityLabel="Express service"
+                  className="mt-2 flex-row items-center justify-between rounded-2xl bg-surface p-4"
+                  style={{
+                    borderWidth: 1.5,
+                    borderColor: expressFocus.focused
+                      ? theme.colors.focusRing
+                      : vm.isExpress
+                        ? theme.colors.primary
+                        : theme.colors.border,
+                  }}>
                   <View className="flex-1 pr-3">
                     <Text className="text-sm font-semibold text-content">Express service</Text>
-                    <Text className="text-xs text-content-tertiary">Faster turnaround</Text>
+                    <Text className="mt-0.5 text-xs text-content-tertiary">
+                      Ask housekeeping to prioritise this order
+                    </Text>
                   </View>
-                  <Toggle
-                    value={vm.isExpress}
-                    onValueChange={vm.setIsExpress}
-                    accessibilityLabel="Express service"
-                  />
-                </View>
-                <View className="mt-3 border-t border-border pt-3">
-                  <Text className="mb-2 text-sm font-medium text-content-secondary">
-                    Housekeeping notes
-                  </Text>
-                  <TextInput
-                    value={vm.notes}
-                    onChangeText={vm.setNotes}
-                    placeholder="Any special instructions (optional)"
-                    placeholderTextColor={theme.colors.muted}
-                    multiline
-                    textAlignVertical="top"
-                    className="rounded-xl bg-surface-elevated px-4 py-3 text-base text-content"
-                    style={{minHeight: 90, borderWidth: 1.5, borderColor: theme.colors.border}}
-                  />
-                </View>
-              </Card>
+                  <View pointerEvents="none">
+                    <Toggle
+                      value={vm.isExpress}
+                      onValueChange={vm.setIsExpress}
+                      accessibilityLabel="Express service"
+                    />
+                  </View>
+                </Pressable>
+
+                <TextInput
+                  value={vm.notes}
+                  onChangeText={vm.setNotes}
+                  placeholder="Instructions for housekeeping (optional)"
+                  placeholderTextColor={theme.colors.muted}
+                  multiline
+                  textAlignVertical="top"
+                  className="mt-3 rounded-2xl bg-surface px-4 py-3 text-sm text-content"
+                  style={{minHeight: 84, borderWidth: 1.5, borderColor: theme.colors.border}}
+                />
+              </>
             ) : null}
           </ScrollView>
 
           {vm.summary.lines.length > 0 ? (
             <View className="border-t border-border px-5 pb-6 pt-3">
-              <View className="mb-1 flex-row justify-between">
+              <View className="flex-row justify-between">
                 <Text className="text-xs text-content-tertiary">
-                  {vm.summary.pieceCount} piece{vm.summary.pieceCount !== 1 ? 's' : ''} · Subtotal
+                  {vm.summary.pieceCount} piece{vm.summary.pieceCount === 1 ? '' : 's'}
                 </Text>
-                <Text className="text-xs text-content-secondary">₹{vm.summary.subTotal.toFixed(2)}</Text>
+                <Text className="text-xs text-content-secondary">
+                  ₹{vm.summary.subTotal.toFixed(2)}
+                </Text>
               </View>
               {vm.summary.taxPercentage > 0 ? (
-                <View className="mb-1 flex-row justify-between">
+                <View className="mt-1 flex-row justify-between">
                   <Text className="text-xs text-content-tertiary">
                     Tax ({vm.summary.taxPercentage}%)
                   </Text>
@@ -252,14 +297,14 @@ export function LaundryScreen({navigation}: Props) {
                   </Text>
                 </View>
               ) : null}
-              <View className="mb-3 flex-row justify-between">
-                <Text className="text-sm font-bold text-content">Total</Text>
+              <View className="mb-3 mt-2 flex-row justify-between border-t border-border pt-2">
+                <Text className="text-sm font-bold text-content">Estimated total</Text>
                 <Text className="text-sm font-bold text-primary">
                   ₹{vm.summary.totalAmount.toFixed(2)}
                 </Text>
               </View>
               <Button
-                label="Request pickup"
+                label={vm.isSubmitting ? 'Requesting…' : 'Request Pickup'}
                 onPress={onSubmit}
                 loading={vm.isSubmitting}
                 fullWidth

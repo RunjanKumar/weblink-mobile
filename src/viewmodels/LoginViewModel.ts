@@ -6,6 +6,7 @@ import {useAuth} from '../store/AuthContext';
 import {getApiErrorMessage} from '../utils/errorHandler';
 import {storage} from '../services/storage.service';
 import {STORAGE_KEYS} from '../constants/storageKeys';
+import {config} from '../constants/config';
 
 /**
  * LoginScreen's ViewModel. Owns the form (RHF + Zod), the sign-in mutation
@@ -18,7 +19,12 @@ export function useLoginViewModel() {
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {email: rememberedEmail, password: ''},
+    // Dev builds prefill the test guest so every manual test run doesn't start
+    // with remote-keyboard typing (see config.devLogin — null in production).
+    defaultValues: {
+      email: config.devLogin?.email ?? rememberedEmail,
+      password: config.devLogin?.password ?? '',
+    },
     mode: 'onTouched',
   });
 

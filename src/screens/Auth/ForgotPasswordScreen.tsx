@@ -27,13 +27,15 @@ function Banner({
 }) {
   const {theme} = useTheme();
   const isError = tone === 'error';
+  // Tints derived from the theme tokens so they track the scheme.
+  const tint = isError ? theme.colors.danger : theme.colors.success;
   return (
     <View
       className="mb-4 flex-row items-center rounded-xl p-3"
       style={{
-        backgroundColor: isError ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.12)',
+        backgroundColor: `${tint}1f`,
         borderWidth: 1,
-        borderColor: isError ? 'rgba(239,68,68,0.4)' : 'rgba(34,197,94,0.4)',
+        borderColor: `${tint}66`,
       }}>
       <Icon
         name={isError ? 'alert-circle' : 'checkmark-circle'}

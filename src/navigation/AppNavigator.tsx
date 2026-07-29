@@ -1,31 +1,89 @@
 import React from 'react';
-import {Platform} from 'react-native';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {Pressable, type StyleProp, type ViewStyle} from 'react-native';
+import {
+  createBottomTabNavigator,
+  type BottomTabBarButtonProps,
+} from '@react-navigation/bottom-tabs';
 import {WebIcon, type WebIconName} from '../components';
 import type {AppTabParamList} from './types';
+import {IS_TV} from '../utils/responsive';
+import {useTVFocus} from '../hooks/useTVFocus';
 import {useTheme} from '../theme';
-import {HomeStackNavigator} from './HomeStackNavigator';
-import {BookingScreen} from '../screens/Booking/BookingScreen';
-import {ProfileScreen} from '../screens/Profile/ProfileScreen';
-import {SettingsScreen} from '../screens/Settings/SettingsScreen';
+import {
+  HomeStackNavigator,
+  FoodStackNavigator,
+  FacilitiesStackNavigator,
+  ServicesStackNavigator,
+} from './HomeStackNavigator';
+// The Reception tab now opens the live chat directly — the client did not want
+// the guest to sit through an intro page first. `ReceptionScreen` (the "Contact
+// the Hotel Receptionist" page) is kept in the repo, just no longer routed.
+// import {ReceptionScreen} from '../screens/Reception/ReceptionScreen';
+import {ChatScreen} from '../screens/Chat/ChatScreen';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
-// NOTE: the web's bottom bar is Home / Reception / Facilities / Services — a
-// different tab set, not just different icons. Only `Home` maps across, so it
-// uses the web's exact glyph (filled when active, as on the web); the rest are
-// drawn in the same Feather/Lucide family so the bar reads as one set.
-const ICONS: Record<keyof AppTabParamList, WebIconName> = {
-  Home: 'home',
-  Booking: 'booking',
-  Profile: 'profile',
-  Settings: 'settings',
-};
+/**
+ * Reference `BottomNav.jsx` tab set and glyphs: Home, Reception, Food,
+ * Facilities, Services. `home` and `facilities` fill when active (web
+ * behavior); the rest stay stroked.
+ */
+const TABS: {name: keyof AppTabParamList; title: string; icon: WebIconName; fills: boolean}[] = [
+  {name: 'Home', title: 'Home', icon: 'home', fills: true},
+  {name: 'ReceptionTab', title: 'Reception', icon: 'reception', fills: false},
+  {name: 'FoodTab', title: 'Food', icon: 'food', fills: false},
+  {name: 'FacilitiesTab', title: 'Facilities', icon: 'facilities', fills: true},
+  {name: 'ServicesTab', title: 'Services', icon: 'services', fills: false},
+];
+
+const ICON_BY_ROUTE = Object.fromEntries(TABS.map(t => [t.name, t])) as Record<
+  keyof AppTabParamList,
+  (typeof TABS)[number]
+>;
+
+/**
+ * Tab button with a D-pad focus ring.
+ *
+ * The default tab button only distinguishes the ACTIVE tab (tint colour). With
+ * a remote you also need to see which tab the highlight is currently on before
+ * you press OK — otherwise moving down into the bar looks like nothing happened.
+ */
+function TabBarButton(props: BottomTabBarButtonProps) {
+  const {theme} = useTheme();
+  const {focused, onFocus, onBlur} = useTVFocus();
+  // `href` MUST NOT reach the Pressable. react-native-web renders an <a> as
+  // soon as href is present (exports/View/index.js), and React Navigation
+  // supplies one for web deep links. On webOS the app is served from file://,
+  // so following that link navigates the document to a path that does not
+  // exist — the page dies with net::ERR_ACCESS_DENIED (-10) and webOS replaces
+  // the whole app with its "UNABLE TO LOAD" screen. `onPress` below already
+  // performs the navigation; the anchor is pure downside here.
+  // `ref` is typed for the navigator's own element and conflicts with Pressable's.
+  const {children, style, href: _href, ref: _ref, ...rest} = props;
+  return (
+    <Pressable
+      {...rest}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      style={[
+        style as StyleProp<ViewStyle>,
+        {
+          borderRadius: 12,
+          borderWidth: 2,
+          borderColor: focused ? theme.colors.focusRing : 'transparent',
+        },
+      ]}>
+      {children}
+    </Pressable>
+  );
+}
 
 export function AppNavigator() {
   const {theme} = useTheme();
   // TV needs a taller bar so D-pad focus targets are comfortable.
-  const barHeight = Platform.isTV ? 84 : 64;
+  // IS_TV, not Platform.isTV: the latter is always false under react-native-web,
+  // so webOS was silently getting the 64px phone bar.
+  const barHeight = IS_TV ? 84 : 64;
 
   return (
     <Tab.Navigator
@@ -40,20 +98,37 @@ export function AppNavigator() {
           paddingBottom: 8,
           paddingTop: 8,
         },
-        tabBarLabelStyle: {fontSize: 11, fontWeight: '500'},
-        tabBarIcon: ({color, size, focused}) => (
-          <WebIcon
-            name={ICONS[route.name]}
-            color={color}
-            size={size}
-            filled={focused && ICONS[route.name] === 'home'}
-          />
-        ),
+        tabBarLabelStyle: {fontSize: IS_TV ? 13 : 11, fontWeight: '500'},
+        tabBarButton: props => <TabBarButton {...props} />,
+        tabBarIcon: ({color, size, focused}) => {
+          const tab = ICON_BY_ROUTE[route.name];
+          return (
+            <WebIcon
+              name={tab.icon}
+              color={color}
+              size={IS_TV ? 28 : size}
+              filled={focused && tab.fills}
+            />
+          );
+        },
       })}>
       <Tab.Screen name="Home" component={HomeStackNavigator} options={{title: 'Home'}} />
-      <Tab.Screen name="Booking" component={BookingScreen} options={{title: 'Booking'}} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{title: 'Profile'}} />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{title: 'Settings'}} />
+      <Tab.Screen
+        name="ReceptionTab"
+        component={ChatScreen as unknown as React.ComponentType}
+        options={{title: 'Reception'}}
+      />
+      <Tab.Screen name="FoodTab" component={FoodStackNavigator} options={{title: 'Food'}} />
+      <Tab.Screen
+        name="FacilitiesTab"
+        component={FacilitiesStackNavigator}
+        options={{title: 'Facilities'}}
+      />
+      <Tab.Screen
+        name="ServicesTab"
+        component={ServicesStackNavigator}
+        options={{title: 'Services'}}
+      />
     </Tab.Navigator>
   );
 }

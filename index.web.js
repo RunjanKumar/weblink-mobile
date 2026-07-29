@@ -5,11 +5,18 @@
  * Mirrors `index.js` (the native entry) but ends in `AppRegistry.runApplication`
  * against a real DOM node instead of leaving the host to start the app.
  *
- * IMPORTANT ordering is the same as native:
- *  1. `react-native-gesture-handler` first (React Navigation).
- *  2. `./global.css` — on web this is real Tailwind CSS emitted by PostCSS,
+ * IMPORTANT ordering:
+ *  1. `core-js/stable` before everything — webOS runs an old Chromium that is
+ *     missing modern built-ins (Array#findLastIndex, Object.fromEntries, ...).
+ *     preset-env's `useBuiltIns: 'entry'` rewrites this one import into just
+ *     the polyfills the target lacks, and they must be installed before any
+ *     dependency runs. Web/webOS only — the native entry (index.js) does not
+ *     need it, since Hermes ships these already.
+ *  2. `react-native-gesture-handler` next (React Navigation).
+ *  3. `./global.css` — on web this is real Tailwind CSS emitted by PostCSS,
  *     not NativeWind's native StyleSheet output.
  */
+import 'core-js/stable';
 import 'react-native-gesture-handler';
 import './global.css';
 

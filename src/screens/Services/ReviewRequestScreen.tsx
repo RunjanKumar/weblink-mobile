@@ -1,9 +1,9 @@
 import React from 'react';
-import {Alert, Pressable, ScrollView, Text, View} from 'react-native';
+import {Pressable, ScrollView, Text, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Button, Card, EmptyState, Header, Loader} from '../../components';
+import {Button, Card, EmptyState, Header, Loader, toast} from '../../components';
 import {useReviewRequestViewModel} from '../../viewmodels';
 import {useTheme} from '../../theme';
 import {getApiErrorMessage} from '../../utils/errorHandler';
@@ -18,12 +18,11 @@ export function ReviewRequestScreen({navigation}: Props) {
   const onSend = () => {
     vm.submit()
       .then(() => {
-        Alert.alert('Request sent', 'Your service request has been submitted.', [
-          {text: 'OK', onPress: () => navigation.navigate('ServiceBooked')},
-        ]);
+        toast.success('Your service request has been submitted.');
+        navigation.replace('ServiceBooked');
       })
       .catch(error => {
-        Alert.alert('Error', getApiErrorMessage(error, 'Failed to submit request.'));
+        toast.error(getApiErrorMessage(error, 'Failed to submit request.'));
       });
   };
 
@@ -61,9 +60,17 @@ export function ReviewRequestScreen({navigation}: Props) {
                         key={sub._id}
                         className={idx > 0 ? 'border-t border-border pt-3 mt-3' : ''}>
                         <View className="flex-row items-center justify-between">
-                          <Text className="flex-1 pr-2 text-sm font-medium text-content">
-                            {sub.name}
-                          </Text>
+                          <View className="flex-1 pr-2">
+                            <Text className="text-sm font-medium text-content">{sub.name}</Text>
+                            {sub.description ? (
+                              <Text className="mt-0.5 text-xs text-content-tertiary" numberOfLines={2}>
+                                {sub.description}
+                              </Text>
+                            ) : null}
+                            {sub.price != null && sub.price > 0 ? (
+                              <Text className="mt-0.5 text-xs font-semibold text-primary">₹ {sub.price}</Text>
+                            ) : null}
+                          </View>
                           <Pressable
                             onPress={() => vm.remove(sub._id)}
                             focusable
@@ -74,7 +81,9 @@ export function ReviewRequestScreen({navigation}: Props) {
                           </Pressable>
                         </View>
                         {detail ? (
-                          <Text className="mt-1 text-xs text-content-tertiary">{detail}</Text>
+                          <Text className="mt-1 text-xs italic text-content-tertiary">
+                            Details : {detail}
+                          </Text>
                         ) : null}
                         <Pressable
                           onPress={() =>
@@ -85,9 +94,10 @@ export function ReviewRequestScreen({navigation}: Props) {
                           }
                           focusable
                           accessibilityRole="button"
-                          className="mt-2 self-start">
+                          className="mt-2 self-start rounded-lg px-3 py-1.5"
+                          style={{borderWidth: 1, borderColor: theme.colors.primary}}>
                           <Text className="text-xs font-semibold text-primary">
-                            {detail ? 'Edit details' : 'Add details'}
+                            {detail ? 'Edit Details' : 'Add Details'}
                           </Text>
                         </Pressable>
                       </View>

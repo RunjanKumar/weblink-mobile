@@ -15,6 +15,16 @@ function isWebOS(): boolean {
 /** True on Android TV / tvOS / LG webOS. Cheap constant for TV-only branches. */
 export const IS_TV: boolean = Platform.isTV === true || isWebOS();
 
+/**
+ * True in the web (.ipk / webOS) build, false in every Android .apk.
+ *
+ * Distinct from IS_TV on purpose: IS_TV is also true for an Android TV APK, so
+ * it cannot express "the TV app follows a different flow than the phone app".
+ * Use this only for the flow differences the client asked for on webOS; keep
+ * using IS_TV for ten-foot sizing and focus behaviour.
+ */
+export const IS_WEB_BUILD: boolean = Platform.OS === 'web';
+
 export type DeviceType = 'phone' | 'tablet' | 'tv';
 
 // Baseline device width the design tokens were authored against.

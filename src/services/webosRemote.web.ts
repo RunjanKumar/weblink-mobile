@@ -14,7 +14,8 @@
  *
  * Call `installWebOSRemote()` once at startup; it is a no-op off the web.
  */
-import {goBackIfPossible} from '../navigation/navigationRef';
+import {goBackIfPossible, navigationRef} from '../navigation/navigationRef';
+import {closeTopModal, topModalRootId} from './modalRegistry';
 const KEY_LEFT = 37;
 const KEY_UP = 38;
 const KEY_RIGHT = 39;
@@ -50,7 +51,12 @@ function isVisible(el: Element): boolean {
 }
 
 function candidates(): HTMLElement[] {
-  return Array.from(document.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(isVisible);
+  // While a modal (dialog / bottom sheet) is open, spatial nav must not walk
+  // focus to elements behind it — RNW's Modal only brackets Tab focus, not our
+  // synthetic arrow moves. Scope the candidate set to the modal's subtree.
+  const modalId = topModalRootId();
+  const root = (modalId && document.getElementById(modalId)) || document;
+  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(isVisible);
 }
 
 function centre(el: Element): {x: number; y: number} {
@@ -128,8 +134,13 @@ function directionFor(keyCode: number): Direction | null {
   }
 }
 
-/** Text fields own their arrow keys (caret movement) — never steal those. */
-function isTextEntry(el: Element | null): boolean {
+/**
+ * Text fields own the arrow keys that move a caret. For a single-line <input>
+ * that is ONLY left/right — up/down do nothing to the caret, so those escape
+ * to spatial nav (otherwise the D-pad gets trapped in the search/coupon boxes
+ * with no way out but Back). TEXTAREA/SELECT keep all four.
+ */
+function isTextEntry(el: Element | null, direction: Direction): boolean {
   if (!el) {
     return false;
   }
@@ -141,7 +152,41 @@ function isTextEntry(el: Element | null): boolean {
     return false;
   }
   const type = (el as HTMLInputElement).type;
-  return type !== 'button' && type !== 'submit' && type !== 'checkbox' && type !== 'radio';
+  // Segmented pickers step their value with up/down — keep ALL arrows there.
+  if (
+    type === 'date' ||
+    type === 'time' ||
+    type === 'datetime-local' ||
+    type === 'month' ||
+    type === 'week' ||
+    type === 'number'
+  ) {
+    return true;
+  }
+  const isText =
+    type !== 'button' && type !== 'submit' && type !== 'checkbox' && type !== 'radio';
+  return isText && (direction === 'left' || direction === 'right');
+}
+
+/**
+ * Put the highlight somewhere sensible when a new screen appears.
+ *
+ * Without this the first arrow press after navigating lands on whatever
+ * `candidates()` happens to return first, so the guest presses a direction and
+ * the highlight appears somewhere unrelated. Seeding on arrival means there is
+ * always a visible starting point — normally the back button or the first
+ * control in the header.
+ *
+ * Only seeds when nothing useful is focused: if the previous screen's element
+ * was removed, `document.activeElement` falls back to <body>. An element that
+ * survived the transition (a modal's button) is left alone.
+ */
+function seedFocus(): void {
+  const active = document.activeElement as HTMLElement | null;
+  if (active && active !== document.body && isVisible(active)) {
+    return;
+  }
+  candidates()[0]?.focus();
 }
 
 let installed = false;
@@ -152,16 +197,23 @@ export function installWebOSRemote(): void {
   }
   installed = true;
 
+  // React Navigation renders the new screen during the state change; wait two
+  // frames so the DOM is painted and off-screen siblings have been laid out
+  // (isVisible filters on geometry, which is zero until then).
+  navigationRef.addListener('state', () => {
+    requestAnimationFrame(() => requestAnimationFrame(seedFocus));
+  });
+
   document.addEventListener(
     'keydown',
     event => {
       if (event.keyCode === KEY_BACK) {
-        // React Navigation is not wired to browser history here (no `linking`
-        // config — a TV app has no URLs), so history.back() would exit the app
-        // from any screen. Pop the navigator instead, and only let the press
-        // through when we are already at the root, which closes the app —
-        // exactly what LG expects from Back.
-        if (goBackIfPossible()) {
+        // Priority 1: close the top-most open modal (dialog / payment sheet).
+        // Priority 2: pop the navigator (React Navigation is not wired to
+        // browser history — history.back() would exit the app from anywhere).
+        // At the root with nothing open, let the press through: webOS closes
+        // the app, which is what LG expects from Back.
+        if (closeTopModal() || goBackIfPossible()) {
           event.preventDefault();
         }
       }
@@ -172,7 +224,7 @@ export function installWebOSRemote(): void {
       }
 
       const active = document.activeElement as HTMLElement | null;
-      if (isTextEntry(active)) {
+      if (isTextEntry(active, direction)) {
         return;
       }
 

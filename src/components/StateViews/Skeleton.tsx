@@ -32,8 +32,11 @@ const HALF_CYCLE_MS = 800;
  * reanimated's only consumer in the app.
  */
 export function Skeleton({width = '100%', height = 16, radius = 8, style}: SkeletonProps) {
-  const {theme} = useTheme();
+  const {theme, scheme} = useTheme();
   const opacity = useRef(new Animated.Value(MIN_OPACITY)).current;
+  // surfaceElevated works on dark, but on light it is within ~4% of the page
+  // background — the placeholder would be invisible. Use a clearly darker gray.
+  const fill = scheme === 'dark' ? theme.colors.surfaceElevated : '#dde0e6';
 
   useEffect(() => {
     const pulse = Animated.loop(
@@ -64,7 +67,7 @@ export function Skeleton({width = '100%', height = 16, radius = 8, style}: Skele
           width,
           height,
           borderRadius: radius,
-          backgroundColor: theme.colors.surfaceElevated,
+          backgroundColor: fill,
           opacity,
         },
         style,

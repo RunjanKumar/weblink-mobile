@@ -79,6 +79,18 @@ if (-not (Test-Path $envFile)) {
     Write-Ok ".env present"
 }
 
+# Dev-credential guard: react-native-dotenv INLINES .env values into the bundle.
+# A production build carrying DEV_LOGIN_* would ship the test-guest password to
+# every TV. Hard-fail there; warn on dev builds so nobody forgets it exists.
+$envText = Get-Content $envFile -Raw
+$hasDevCreds = $envText -match '(?m)^DEV_LOGIN_PASSWORD=.+$'
+$isProdEnv   = $envText -match '(?m)^APP_ENV=production'
+if ($hasDevCreds -and $isProdEnv) {
+    throw ".env has APP_ENV=production but still contains DEV_LOGIN_* credentials. Remove those lines before a production build."
+} elseif ($hasDevCreds) {
+    Write-Warn "DEV_LOGIN_* credentials are in .env (dev build) - remove them before any production build."
+}
+
 foreach ($required in @('appinfo.json', 'icon.png', 'largeIcon.png')) {
     if (-not (Test-Path (Join-Path $webosSrc $required))) {
         throw "webos\$required is missing. It is required by ares-package."
@@ -134,12 +146,17 @@ if ($Install) {
     Write-Step "Installing onto the TV ..."
     Push-Location $projectRoot
     try {
-        if ($Device) {
-            Invoke-Native -What 'ares-install' -Command { npx ares-install -d $Device $ipk.FullName }
-        } else {
-            Invoke-Native -What 'ares-install' -Command { npx ares-install $ipk.FullName }
-        }
-        Write-Ok "installed com.wattinventive.weblink"
+        $devArgs = if ($Device) { @('-d', $Device) } else { @() }
+        # webOS RESUMES a running app rather than reloading it — installing over a
+        # running instance leaves the OLD code on screen until the next cold start
+        # (bit us on 2026-07-28: the TV kept showing the previous build after a
+        # successful install). Close first, then install, then launch fresh.
+        $previous = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try { npx ares-launch @devArgs --close com.wattinventive.weblink 2>$null | Out-Null } finally { $ErrorActionPreference = $previous }
+        Invoke-Native -What 'ares-install' -Command { npx ares-install @devArgs $ipk.FullName }
+        Invoke-Native -What 'ares-launch' -Command { npx ares-launch @devArgs com.wattinventive.weblink }
+        Write-Ok "installed + cold-started com.wattinventive.weblink"
     } finally { Pop-Location }
 } else {
     Write-Host ""

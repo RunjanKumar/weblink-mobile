@@ -166,6 +166,17 @@ try {
         Write-Ok ".env present"
     }
 
+    # Dev-credential guard: react-native-dotenv INLINES .env values into the JS
+    # bundle. Fail a production build that still carries the test-guest login.
+    $envText = Get-Content $envFile -Raw
+    $hasDevCreds = $envText -match '(?m)^DEV_LOGIN_PASSWORD=.+$'
+    $isProdEnv   = $envText -match '(?m)^APP_ENV=production'
+    if ($hasDevCreds -and $isProdEnv) {
+        throw ".env has APP_ENV=production but still contains DEV_LOGIN_* credentials. Remove those lines before a production build."
+    } elseif ($hasDevCreds) {
+        Write-Warn "DEV_LOGIN_* credentials are in .env (dev build) - remove them before any production build."
+    }
+
     # Release builds are signed with the debug keystore (see android/app/build.gradle).
     # Fine for sideloading; a real keystore is required before any Play Store upload.
     $keystore = Join-Path $projectRoot 'android\app\debug.keystore'

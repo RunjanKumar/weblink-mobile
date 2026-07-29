@@ -14,7 +14,9 @@
         margin: 0;
         padding: 0;
         height: 100%;
-        background: #0d0d0d;
+        /* Boot background = the LIGHT theme's background (the app default).
+           ThemeProvider re-syncs this on every scheme change. */
+        background: #f2f3f5;
         overflow: hidden;
       }
       #root {
@@ -28,6 +30,27 @@
       /* The app draws its own amber focus rings; the UA outline double-draws them. */
       *:focus {
         outline: none;
+      }
+      /*
+        Ten-foot scale.
+
+        webOS lays the app out across the full 1920px surface, so the phone-scale
+        type the components were authored at (12-16px) is both tiny and soft from
+        a sofa. NativeWind compiles to px values in JS, not rem, so there is no
+        root font-size lever — `zoom` is the one knob that scales everything.
+
+        `zoom` is a LAYOUT scale: the browser re-flows at 1280 CSS px and then
+        rasterises text at the full 1920 device resolution, so glyphs come out
+        crisp. `transform: scale()` would rasterise first and then stretch the
+        bitmap, which is exactly what makes text look blurry — do not swap it.
+
+        Tune this single number to make the whole UI bigger or smaller. The
+        min-width guard keeps a small desktop dev window usable.
+      */
+      @media (min-width: 1600px) {
+        :root {
+          zoom: 1.5;
+        }
       }
     </style>
   </head>
