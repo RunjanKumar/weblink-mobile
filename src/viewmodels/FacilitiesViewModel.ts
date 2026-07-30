@@ -40,7 +40,7 @@ export function useFacilitiesViewModel() {
     activeCategory,
     facilities: activeCategory?.types ?? [],
     isLoading: query.isLoading,
-    error: query.isError ? getApiErrorMessage(query.error, 'Failed to load facilities.') : null,
+    error: query.isError ? getApiErrorMessage(query.error, 'Could not load the facilities.') : null,
     refetch: query.refetch,
     setActiveType,
   };

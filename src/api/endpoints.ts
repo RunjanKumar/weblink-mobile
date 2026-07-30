@@ -34,6 +34,7 @@ export const ENDPOINTS = {
   CONVERSATION_LIST: '/conversation/list',
   LAUNDRY_RATE_LIST: '/v1/laundry/guest/rate-list',
   LAUNDRY_ORDER: '/v1/laundry/guest/order',
+  FOLIO_GUEST: '/v1/folio/guest',
 } as const;
 
 export type EndpointKey = keyof typeof ENDPOINTS;

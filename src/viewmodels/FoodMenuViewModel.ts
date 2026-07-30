@@ -50,7 +50,7 @@ export function useFoodMenuViewModel() {
     categories: filtered,
     coupons: search.trim() ? [] : coupons,
     isLoading: query.isLoading,
-    error: query.isError ? getApiErrorMessage(query.error, 'Failed to load the menu.') : null,
+    error: query.isError ? getApiErrorMessage(query.error, 'Could not load the menu.') : null,
     refetch: query.refetch,
     search,
     setSearch,

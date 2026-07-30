@@ -57,7 +57,7 @@ export function useOrderHistoryViewModel() {
       try {
         const pay = await foodRepository.initiatePayment(order._id);
         if (!pay.razorpayOrderId || !pay.razorpayKey) {
-          throw new Error('Failed to initiate payment.');
+          throw new Error('Could not start the payment. Please try again.');
         }
         try {
           const result = await openRazorpay({
@@ -80,13 +80,13 @@ export function useOrderHistoryViewModel() {
             razorpayPaymentId: result.razorpay_payment_id,
             razorpaySignature: result.razorpay_signature,
           });
-          toast.success('Payment successful! 🎉');
+          toast.success('Your payment has been confirmed.');
         } catch (error) {
           toast.error(getApiErrorMessage(error, 'Payment was not completed.'));
         }
         await query.refetch();
       } catch (error) {
-        toast.error(getApiErrorMessage(error, 'Failed to initiate payment.'));
+        toast.error(getApiErrorMessage(error, 'Could not start the payment. Please try again.'));
       } finally {
         setPayingOrderId(null);
       }
@@ -98,7 +98,7 @@ export function useOrderHistoryViewModel() {
     orders,
     isLoading: query.isLoading,
     isRefetching: query.isRefetching,
-    error: query.isError ? getApiErrorMessage(query.error, 'Failed to load orders.') : null,
+    error: query.isError ? getApiErrorMessage(query.error, 'Could not load your orders.') : null,
     refetch: query.refetch,
     hasPendingPayment,
     canPayOnline,

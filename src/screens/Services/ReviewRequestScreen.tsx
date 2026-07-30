@@ -18,11 +18,11 @@ export function ReviewRequestScreen({navigation}: Props) {
   const onSend = () => {
     vm.submit()
       .then(() => {
-        toast.success('Your service request has been submitted.');
+        toast.success('Your request has been sent to housekeeping.');
         navigation.replace('ServiceBooked');
       })
       .catch(error => {
-        toast.error(getApiErrorMessage(error, 'Failed to submit request.'));
+        toast.error(getApiErrorMessage(error, 'Could not send your request.'));
       });
   };
 

@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {roomRepository} from '../repositories/room.repository';
-import {DEVICE_ACTION, DEVICE_TYPE} from '../constants/roomControl';
+import {DEVICE_ACTION, DEVICE_TYPE, isCurtainChannel} from '../constants/roomControl';
 import {getApiErrorMessage} from '../utils/errorHandler';
 import type {ExecDevicePayload, RoomDevice} from '../models/device.model';
 
@@ -22,8 +22,13 @@ export function useRoomControl() {
   });
 
   const devices = query.data ?? [];
-  const lights = devices.filter(d => !d.isSceneButton);
-  const scenes = devices.filter(d => d.isSceneButton);
+  // Curtain motor lines come back as ordinary switch channels. They are pulled
+  // out of BOTH lists: as a "light" a guest could energise open and close at the
+  // same time (a stalled motor), and as a "scene" they would appear twice.
+  const curtains = devices.filter(d => isCurtainChannel(d.friendlyname));
+  const isCurtain = (d: RoomDevice) => isCurtainChannel(d.friendlyname);
+  const lights = devices.filter(d => !d.isSceneButton && !isCurtain(d));
+  const scenes = devices.filter(d => d.isSceneButton && !isCurtain(d));
   const master = devices.find(d => d.isMasterScene) ?? null;
 
   const fanTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -46,10 +51,41 @@ export function useRoomControl() {
   const patchAllLights = useCallback(
     (isOn: boolean) => {
       queryClient.setQueryData<RoomDevice[]>(DEVICES_KEY as unknown as string[], prev =>
-        prev ? prev.map(d => (d.isSceneButton ? d : {...d, isOn})) : prev,
+        prev
+          ? prev.map(d =>
+              // Curtains are skipped: "all lights off" must not paint the curtain
+              // card as though both motor lines had been driven.
+              d.isSceneButton || isCurtainChannel(d.friendlyname) ? d : {...d, isOn},
+            )
+          : prev,
       );
     },
     [queryClient],
+  );
+
+  /**
+   * Drive a channel to an EXPLICIT state, rather than flipping it.
+   *
+   * Curtains need this and a toggle cannot serve: "open" is a direction, not the
+   * opposite of whatever the cache last saw, and STOP has to be able to fire OFF
+   * at a line the cache already believes is off (the cache can be a poll behind
+   * a motor that is still travelling). So the call always goes out.
+   */
+  const setDevice = useCallback(
+    async (device: RoomDevice, isOn: boolean) => {
+      const previous = device.isOn;
+      patchDevice(device._id, {isOn});
+      try {
+        await roomRepository.exec({
+          channelid: device.channelid,
+          action: isOn ? DEVICE_ACTION.ON : DEVICE_ACTION.OFF,
+        });
+      } catch (error) {
+        patchDevice(device._id, {isOn: previous});
+        throw error;
+      }
+    },
+    [patchDevice],
   );
 
   /** Toggle a single device/scene. Optimistic; rolls back and rethrows on failure. */
@@ -128,6 +164,7 @@ export function useRoomControl() {
     devices,
     lights,
     scenes,
+    curtains,
     master,
     masterOn: master?.isOn ?? false,
     hasScenes: scenes.length > 0,
@@ -136,6 +173,7 @@ export function useRoomControl() {
     error: query.isError ? getApiErrorMessage(query.error) : null,
     refetch: query.refetch,
     toggleDevice,
+    setDevice,
     toggleMaster,
     setFanLevel,
   };

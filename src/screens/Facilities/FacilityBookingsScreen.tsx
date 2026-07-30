@@ -8,36 +8,13 @@ import {useBookedFacilityViewModel} from '../../viewmodels';
 import {useTheme, useStatusTones} from '../../theme';
 import {IS_TV} from '../../utils/responsive';
 import {FACILITY_STATUS_TONES, FACILITY_STATUS_LABELS} from '../../constants/status';
+// Shared with the TV frames — see the note on the function for why the time is
+// read out of the raw string instead of through `Date`.
+import {formatBookingDateTime} from '../../utils/format';
 import type {FacilityReservation} from '../../models/facility.model';
 import type {HomeStackParamList} from '../../navigation/types';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'FacilityBookings'>;
-
-/**
- * Reference formatting: "28 Jul 2026 at 02:30 PM". The time MUST come from the
- * raw string after the "T" (reference `latestFormattedTime`) — the stored value
- * is the naive wall-clock the guest picked, and `new Date(iso)`'s timezone
- * conversion would shift it (7:49 AM was rendering as 1:19 PM on IST devices).
- */
-function formatBookingDateTime(iso?: string): string {
-  if (!iso) {
-    return '—';
-  }
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) {
-    return iso;
-  }
-  const date = d.toLocaleDateString('en-IN', {day: '2-digit', month: 'short', year: 'numeric'});
-  const timePart = iso.split('T')[1];
-  if (!timePart) {
-    return date;
-  }
-  const [rawHours, minutes] = timePart.split(':');
-  let hours = Number(rawHours);
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12 || 12;
-  return `${date} at ${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
-}
 
 /** Reference `EventInfoRow.jsx`: icon + text row with a bottom hairline. */
 function EventInfoRow({

@@ -39,6 +39,14 @@ export interface LaundryOrderPayload {
 
 /** A single basket line (local UI state). */
 export interface LaundryBasketLine {
+  /** The garment's own service — its cheapest rate, always charged. */
   serviceType: string;
   qty: number;
+  /**
+   * Extra treatments chosen FOR THIS GARMENT (the TV's "Customize" panel).
+   * Each one bills as its own order line: the payload is a list of
+   * (itemId, serviceType, qty), so one shirt can be both washed and pressed.
+   * Optional because the phone screen never sets it.
+   */
+  extras?: string[];
 }

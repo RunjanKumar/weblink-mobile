@@ -20,6 +20,7 @@ import {
 // the Hotel Receptionist" page) is kept in the repo, just no longer routed.
 // import {ReceptionScreen} from '../screens/Reception/ReceptionScreen';
 import {ChatScreen} from '../screens/Chat/ChatScreen';
+import {TvChatScreen} from '../screens/Chat/TvChatScreen';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
@@ -89,15 +90,22 @@ export function AppNavigator() {
     <Tab.Navigator
       screenOptions={({route}) => ({
         headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.muted,
-        tabBarStyle: {
-          backgroundColor: theme.colors.surface,
-          borderTopColor: theme.colors.border,
-          height: barHeight,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
+        // On TV the home screen is the fixed dark golden-glass mockup, so the
+        // bar matches it instead of the app theme; phone keeps the theme.
+        tabBarActiveTintColor: IS_TV ? '#D4B483' : theme.colors.primary,
+        tabBarInactiveTintColor: IS_TV ? 'rgba(237,231,223,0.55)' : theme.colors.muted,
+        // TV: no bottom bar at all (mockup) — every tab stays REGISTERED and is
+        // reached from the dashboard tiles/menu; the remote's Back returns to
+        // Home from another tab instead of exiting (see navigationRef).
+        tabBarStyle: IS_TV
+          ? {display: 'none' as const}
+          : {
+              backgroundColor: theme.colors.surface,
+              borderTopColor: theme.colors.border,
+              height: barHeight,
+              paddingBottom: 8,
+              paddingTop: 8,
+            },
         tabBarLabelStyle: {fontSize: IS_TV ? 13 : 11, fontWeight: '500'},
         tabBarButton: props => <TabBarButton {...props} />,
         tabBarIcon: ({color, size, focused}) => {
@@ -115,7 +123,9 @@ export function AppNavigator() {
       <Tab.Screen name="Home" component={HomeStackNavigator} options={{title: 'Home'}} />
       <Tab.Screen
         name="ReceptionTab"
-        component={ChatScreen as unknown as React.ComponentType}
+        // The Reception TAB is the chat itself (the phone's intro page has no
+        // ten-foot equivalent); TV wears the glass design system.
+        component={(IS_TV ? TvChatScreen : ChatScreen) as unknown as React.ComponentType}
         options={{title: 'Reception'}}
       />
       <Tab.Screen name="FoodTab" component={FoodStackNavigator} options={{title: 'Food'}} />

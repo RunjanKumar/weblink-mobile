@@ -23,10 +23,19 @@ export type HomeStackParamList = {
   ServiceAddDetails: {subCategoryId: string; subCategoryName?: string};
   ServiceBooked: undefined;
   Laundry: undefined;
+  /** TV only — where the rate list's "Proceed to cart" confirms and submits. */
+  LaundryCart: undefined;
   LaundryOrders: undefined;
   Facilities: undefined;
   FacilityDetail: {facility: FacilityType; categoryName?: string};
   FacilityReserve: {facility: FacilityType};
+  /**
+   * TV only — "check availability": the schedule of every facility with the
+   * booking draft beside it. The param is optional because the frame's VIEW
+   * SCHEDULE row opens it with nothing chosen yet, while a facility card opens it
+   * on that facility.
+   */
+  FacilitySchedule: {facility?: FacilityType} | undefined;
   FacilityBookings: undefined;
   Chat: undefined;
   /** `foodCategoryId` = quick-call deep link (reference dashboard behavior). */
@@ -35,9 +44,12 @@ export type HomeStackParamList = {
   CouponDetail: {couponId: string};
   Cart: undefined;
   OrderHistory: undefined;
+  /** TV only — the Figma's order-details frame, opened from the history list. */
+  OrderDetail: {orderId: string};
   Reception: undefined;
   Profile: undefined;
   Settings: undefined;
+  ViewBill: undefined;
 };
 
 /**

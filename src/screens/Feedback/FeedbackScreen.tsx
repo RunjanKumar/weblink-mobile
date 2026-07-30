@@ -38,7 +38,7 @@ export function FeedbackScreen({navigation}: Props) {
 
   const onSubmit = () =>
     submit(() => {
-      toast.success('Thank you for your feedback!');
+      toast.success('Thank you — your feedback has reached the front desk.');
       if (IS_WEB_BUILD) {
         // Feedback is always pushed from the Dashboard, so this pops back to it.
         navigation.navigate('Dashboard');

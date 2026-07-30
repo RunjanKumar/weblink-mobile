@@ -46,11 +46,11 @@ export function useReserveFacilityViewModel(facility: FacilityType) {
 
   const submit = async (): Promise<boolean> => {
     if (!bookingDate) {
-      toast.error('Please select date and time');
+      toast.error('Please choose a date and a time.');
       return false;
     }
     if (!numberOfPeople) {
-      toast.error('Please select number of people');
+      toast.error('Please choose how many guests.');
       return false;
     }
     await mutation.mutateAsync();

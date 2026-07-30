@@ -178,7 +178,7 @@ module.exports = (_env, argv = {}) => {
         },
         {
           // react-native-vector-icons ships .ttf; on web they load as font files.
-          test: /\.(ttf|otf|woff2?|png|jpe?g|gif|svg)$/,
+          test: /\.(ttf|otf|woff2?|png|jpe?g|gif|svg|webp|avif)$/,
           type: 'asset/resource',
           generator: {filename: 'static/[name].[hash:8][ext]'},
         },

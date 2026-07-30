@@ -9,7 +9,7 @@ export const customerRepository = {
   async getProfile(): Promise<CustomerProfile> {
     const res = await customerApi.getProfile();
     if (!res.data?.user) {
-      throw new Error(res.message || 'Failed to load your profile.');
+      throw new Error(res.message || 'Could not load your profile.');
     }
     return res.data;
   },

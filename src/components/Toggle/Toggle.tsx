@@ -18,6 +18,9 @@ export interface ToggleProps {
    * focus stops per row (tile AND switch) just doubles the presses.
    */
   interactive?: boolean;
+  /** Track overrides for surfaces with their own palette (TV glass dashboard). */
+  trackOnColor?: string;
+  trackOffColor?: string;
 }
 
 /** Custom switch — focusable for D-pad with an amber focus ring. */
@@ -28,6 +31,8 @@ export function Toggle({
   accessibilityLabel,
   size = 'md',
   interactive = true,
+  trackOnColor,
+  trackOffColor,
 }: ToggleProps) {
   const {theme} = useTheme();
   const {focused, onFocus, onBlur} = useTVFocus();
@@ -43,7 +48,9 @@ export function Toggle({
     borderRadius: trackH / 2,
     justifyContent: 'center' as const,
     paddingHorizontal: 3,
-    backgroundColor: value ? theme.colors.primary : theme.colors.muted,
+    backgroundColor: value
+      ? (trackOnColor ?? theme.colors.primary)
+      : (trackOffColor ?? theme.colors.muted),
     borderWidth: focused && IS_TV ? 3 : 2,
     borderColor: focused ? theme.colors.focusRing : 'transparent',
     opacity: disabled ? 0.5 : 1,

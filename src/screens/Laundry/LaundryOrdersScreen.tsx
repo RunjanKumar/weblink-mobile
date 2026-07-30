@@ -140,7 +140,7 @@ export function LaundryOrdersScreen({navigation}: Props) {
   // Reference cancels immediately (no confirm dialog) and toasts the result.
   const cancel = (order: LaundryOrder) => {
     vm.cancelOrder(order)
-      .then(() => toast.success(`Order ${order.orderNumber ?? order._id.slice(-6)} cancelled.`))
+      .then(() => toast.success(`Order ${order.orderNumber ?? order._id.slice(-6)} has been cancelled.`))
       .catch(error => toast.error(getApiErrorMessage(error, 'Could not cancel this order.')));
   };
 

@@ -32,6 +32,6 @@ export function useFeedbackViewModel() {
     setNotes,
     submit,
     isSubmitting: mutation.isPending,
-    error: mutation.isError ? getApiErrorMessage(mutation.error, 'Failed to submit feedback.') : null,
+    error: mutation.isError ? getApiErrorMessage(mutation.error, 'Could not send your feedback.') : null,
   };
 }

@@ -1,6 +1,14 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {Modal, Platform, Pressable, Text, View} from 'react-native';
 import {Button} from '../Button';
+import {
+  DS,
+  FONT,
+  GLASS_BLUR,
+  GlassButton,
+  GlassSheen,
+  GoldButton,
+} from '../TvGlass';
 import {useTheme, useThemeVars} from '../../theme';
 import {IS_TV} from '../../utils/responsive';
 import {registerModal} from '../../services/modalRegistry';
@@ -23,7 +31,11 @@ interface ActiveDialog {
  *  - on web, focus is moved into the dialog on open (otherwise OK would
  *    re-trigger whatever was focused behind it);
  *  - registered in the modal registry so the TV Back key closes the dialog
- *    instead of popping the screen.
+ *    instead of popping the screen;
+ *  - wears the `TvGlass` design system rather than the app theme. The dashboard
+ *    ⋮ menu IS this dialog, so a theme-surface card (a near-white slab on the
+ *    light theme) landed on top of the champagne glass looking like a different
+ *    application had opened.
  */
 export function DialogProvider({children}: {children: React.ReactNode}) {
   const {theme} = useTheme();
@@ -104,7 +116,9 @@ export function DialogProvider({children}: {children: React.ReactNode}) {
             themeVars,
             {
               flex: 1,
-              backgroundColor: theme.colors.overlay,
+              // The glass needs a darker field than the theme's overlay, or the
+              // translucent card has nothing to read against.
+              backgroundColor: IS_TV ? 'rgba(10,7,3,0.72)' : theme.colors.overlay,
               alignItems: 'center',
               justifyContent: 'center',
               padding: 24,
@@ -114,20 +128,40 @@ export function DialogProvider({children}: {children: React.ReactNode}) {
             nativeID={DIALOG_ROOT_ID}
             onPress={() => {}}
             focusable={false}
-            style={{
-              width: '100%',
-              maxWidth: IS_TV ? 560 : 400,
-              backgroundColor: theme.colors.surface,
-              borderRadius: 20,
-              borderWidth: 1,
-              borderColor: theme.colors.border,
-              padding: 24,
-            }}>
+            style={
+              IS_TV
+                ? {
+                    width: '100%',
+                    maxWidth: 460,
+                    // Nearly opaque: `backdrop-filter` is off on TV for
+                    // performance, so there is no blur to stop the dashboard's
+                    // bright tile text reading straight through the card.
+                    backgroundColor: 'rgba(30,23,13,0.96)',
+                    borderRadius: DS.radius,
+                    borderWidth: 1,
+                    borderColor: DS.border,
+                    padding: 20,
+                    overflow: 'hidden',
+                    ...(GLASS_BLUR ?? {}),
+                  }
+                : {
+                    width: '100%',
+                    maxWidth: 400,
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: 20,
+                    borderWidth: 1,
+                    borderColor: theme.colors.border,
+                    padding: 24,
+                  }
+            }>
+            {IS_TV ? <GlassSheen /> : null}
             <Text
               style={{
-                color: theme.colors.text,
-                fontSize: IS_TV ? 24 : 18,
+                color: IS_TV ? DS.text : theme.colors.text,
+                fontSize: IS_TV ? 20 : 18,
                 fontWeight: '700',
+                letterSpacing: IS_TV ? 0.4 : 0,
+                fontFamily: IS_TV ? FONT : undefined,
               }}>
               {active?.request.title}
             </Text>
@@ -135,24 +169,50 @@ export function DialogProvider({children}: {children: React.ReactNode}) {
               <Text
                 style={{
                   marginTop: 8,
-                  color: theme.colors.textSecondary,
-                  fontSize: IS_TV ? 17 : 14,
-                  lineHeight: IS_TV ? 26 : 20,
+                  color: IS_TV ? DS.text2 : theme.colors.textSecondary,
+                  fontSize: IS_TV ? 13 : 14,
+                  lineHeight: IS_TV ? 20 : 20,
+                  fontFamily: IS_TV ? FONT : undefined,
                 }}>
                 {active.request.message}
               </Text>
             ) : null}
-            <View style={{marginTop: 20, gap: 10}}>
-              {active?.request.actions.map((action, index) => (
-                <Button
-                  key={action.value}
-                  label={action.label}
-                  variant={action.variant ?? 'secondary'}
-                  hasTVPreferredFocus={index === active.request.actions.length - 1}
-                  onPress={() => finish(action.value)}
-                  fullWidth
-                />
-              ))}
+            <View style={{marginTop: IS_TV ? 16 : 20, gap: IS_TV ? 8 : 10}}>
+              {active?.request.actions.map((action, index) => {
+                const preferred = index === active.request.actions.length - 1;
+                if (!IS_TV) {
+                  return (
+                    <Button
+                      key={action.value}
+                      label={action.label}
+                      variant={action.variant ?? 'secondary'}
+                      hasTVPreferredFocus={preferred}
+                      onPress={() => finish(action.value)}
+                      fullWidth
+                    />
+                  );
+                }
+                // Gold carries the primary action, a danger TINT the destructive
+                // one — a red slab would read as an error banner on this palette.
+                return action.variant === 'primary' ? (
+                  <GoldButton
+                    key={action.value}
+                    label={action.label}
+                    icon={null}
+                    hasTVPreferredFocus={preferred}
+                    onPress={() => finish(action.value)}
+                  />
+                ) : (
+                  <GlassButton
+                    key={action.value}
+                    label={action.label}
+                    tone={action.variant === 'danger' ? DS.danger : undefined}
+                    hasTVPreferredFocus={preferred}
+                    onPress={() => finish(action.value)}
+                    height={44}
+                  />
+                );
+              })}
             </View>
           </Pressable>
         </Pressable>

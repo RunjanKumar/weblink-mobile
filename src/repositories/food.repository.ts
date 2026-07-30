@@ -123,7 +123,9 @@ export const foodRepository = {
     const res = await foodApi.createOrder(payload);
     const id = res.data?._id;
     if (!id) {
-      throw new Error(res.message || 'Order created but no order ID received.');
+      // The guest gets the plain-language half; the missing-id detail is a
+      // backend fault they can do nothing with, so it stays out of the message.
+      throw new Error(res.message || 'Could not place your order. Please try again.');
     }
     return id;
   },

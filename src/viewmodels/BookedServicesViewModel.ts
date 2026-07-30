@@ -11,6 +11,13 @@ export interface BookedServiceGroup {
   items: BookedService[];
 }
 
+export interface BookedServiceCounts {
+  /** Every request, whatever its status. */
+  all: number;
+  /** Keyed by `BOOKING_STATUS`; a status with nothing in it counts 0, not absent. */
+  byStatus: Record<number, number>;
+}
+
 export function useBookedServicesViewModel() {
   const query = useQuery({
     queryKey: ['services', 'booked'],
@@ -29,8 +36,41 @@ export function useBookedServicesViewModel() {
     ].filter(g => g.items.length > 0);
   }, [data]);
 
+  /**
+   * One newest-first list, for the TV frame's status TABS (the phone stacks the
+   * groups instead). Sorted here rather than in the screen so both readings of
+   * the same data agree on what "latest" means.
+   */
+  const all = useMemo(
+    () =>
+      [...data].sort(
+        (a, b) => new Date(b.requestedAt ?? 0).getTime() - new Date(a.requestedAt ?? 0).getTime(),
+      ),
+    [data],
+  );
+
+  /** Tab counts, including the statuses with nothing in them. */
+  const counts = useMemo<BookedServiceCounts>(() => {
+    const byStatus: Record<number, number> = {
+      [BOOKING_STATUS.PENDING]: 0,
+      [BOOKING_STATUS.IN_PROGRESS]: 0,
+      [BOOKING_STATUS.COMPLETED]: 0,
+      [BOOKING_STATUS.CANCEL]: 0,
+    };
+    for (const {status} of data) {
+      // An unknown status is counted in `all` but has no tab to land in.
+      const current = status == null ? undefined : byStatus[status];
+      if (status != null && current != null) {
+        byStatus[status] = current + 1;
+      }
+    }
+    return {all: data.length, byStatus};
+  }, [data]);
+
   return {
     groups,
+    all,
+    counts,
     isEmpty: data.length === 0,
     isLoading: query.isLoading,
     isRefetching: query.isRefetching,

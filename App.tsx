@@ -11,6 +11,7 @@ import { AuthProvider } from './src/store/AuthContext';
 import { SocketProvider } from './src/store/SocketContext';
 import { ServiceRequestProvider } from './src/store/ServiceRequestContext';
 import { FoodOrderProvider } from './src/store/FoodOrderContext';
+import { LaundryBasketProvider } from './src/store/LaundryBasketContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { queryClient } from './src/services/queryClient';
 
@@ -47,11 +48,13 @@ export default function App() {
                 <SocketProvider>
                   <ServiceRequestProvider>
                     <FoodOrderProvider>
-                      <DialogProvider>
-                        <ThemedStatusBar />
-                        <RootNavigator />
-                        <ToastHost />
-                      </DialogProvider>
+                      <LaundryBasketProvider>
+                        <DialogProvider>
+                          <ThemedStatusBar />
+                          <RootNavigator />
+                          <ToastHost />
+                        </DialogProvider>
+                      </LaundryBasketProvider>
                     </FoodOrderProvider>
                   </ServiceRequestProvider>
                 </SocketProvider>

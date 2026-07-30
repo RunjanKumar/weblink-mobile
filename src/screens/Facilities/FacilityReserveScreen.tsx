@@ -151,10 +151,10 @@ export function FacilityReserveScreen({navigation, route}: Props) {
         if (!submitted) {
           return; // validation toast already shown
         }
-        toast.success('Your reservation has been successfully submitted!');
+        toast.success('Your reservation request has been sent to the front desk.');
         navigation.navigate('FacilityBookings');
       })
-      .catch(error => toast.error(getApiErrorMessage(error, 'Failed to submit reservation.')));
+      .catch(error => toast.error(getApiErrorMessage(error, 'Could not send your reservation request.')));
   };
 
   const dateLabel = vm.bookingDate

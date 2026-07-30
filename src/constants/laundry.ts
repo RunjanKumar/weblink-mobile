@@ -8,6 +8,26 @@ export const LAUNDRY_SERVICE_TYPE_LABELS: Record<string, string> = {
   EXPRESS: 'Express',
 };
 
+/**
+ * One line of guest-facing copy per service, for the TV's "Select services for
+ * this item" list (the Figma prints a description under every service name).
+ *
+ * Static because the rate list carries only `{serviceType, rate}` — there is no
+ * description field to read. Unknown service types simply render without one
+ * rather than borrowing another service's words.
+ */
+export const LAUNDRY_SERVICE_TYPE_DESCRIPTIONS: Record<string, string> = {
+  WASH: 'Washed and neatly folded',
+  IRON: 'Pressed for a crisp finish',
+  WASH_IRON: 'Washed, then pressed and folded',
+  DRY_CLEAN: 'Gentle cleaning for delicate fabrics',
+  EXPRESS: 'Prioritised ahead of the regular round',
+};
+
+export function serviceTypeDescription(serviceType?: string): string {
+  return (serviceType ? LAUNDRY_SERVICE_TYPE_DESCRIPTIONS[serviceType] : undefined) ?? '';
+}
+
 export const LAUNDRY_ORDER_STATUS_LABELS: Record<string, string> = {
   REQUESTED: 'Requested',
   PICKED_UP: 'Picked Up',

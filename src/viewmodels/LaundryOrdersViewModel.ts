@@ -42,7 +42,7 @@ export function useLaundryOrdersViewModel() {
     isEmpty: orders.length === 0,
     isLoading: query.isLoading,
     isRefetching: query.isRefetching,
-    error: query.isError ? getApiErrorMessage(query.error, 'Failed to load your laundry orders.') : null,
+    error: query.isError ? getApiErrorMessage(query.error, 'Could not load your laundry orders.') : null,
     refetch: query.refetch,
     cancelOrder: (order: LaundryOrder) => cancelMutation.mutateAsync(order),
     cancellingId: cancelMutation.isPending ? cancelMutation.variables?._id ?? null : null,

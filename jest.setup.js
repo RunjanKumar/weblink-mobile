@@ -23,9 +23,16 @@ jest.mock('react-native-mmkv', () => {
   };
 });
 
-jest.mock('@env', () => ({
-  API_BASE_URL: 'https://example.test',
-  SOCKET_URL: 'https://socket.example.test',
-  API_TIMEOUT: '20000',
-  APP_ENV: 'test',
-}));
+// `virtual: true` is required: `@env` is not a real package on disk — babel's
+// react-native-dotenv plugin synthesises it at BUILD time from .env, so jest
+// cannot resolve it and refuses the mock without this flag.
+jest.mock(
+  '@env',
+  () => ({
+    API_BASE_URL: 'https://example.test',
+    SOCKET_URL: 'https://socket.example.test',
+    API_TIMEOUT: '20000',
+    APP_ENV: 'test',
+  }),
+  {virtual: true},
+);

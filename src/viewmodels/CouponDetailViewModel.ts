@@ -13,7 +13,7 @@ export function useCouponDetailViewModel(couponId: string) {
   return {
     coupon: query.data ?? null,
     isLoading: query.isLoading,
-    error: query.isError ? getApiErrorMessage(query.error, 'Failed to load the offer.') : null,
+    error: query.isError ? getApiErrorMessage(query.error, 'Could not load this offer.') : null,
     refetch: query.refetch,
   };
 }

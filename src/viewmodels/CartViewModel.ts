@@ -148,16 +148,16 @@ export function useCartViewModel() {
       const {ok, message, data} = await foodRepository.validateCoupon(foodItems, code);
       if (!ok || !data) {
         setAppliedCoupon(null);
-        toast.error(message || 'Failed to apply coupon.');
+        toast.error(message || 'Could not apply that coupon.');
         return;
       }
       setAppliedCoupon({name: code, response: data});
       toast.success(
-        message || `Coupon applied! You save ₹${data.summary?.totalDiscount ?? 0}`,
+        message || `Coupon applied — you save ₹${data.summary?.totalDiscount ?? 0}.`,
       );
     } catch (error) {
       setAppliedCoupon(null);
-      toast.error(getApiErrorMessage(error, 'Failed to apply coupon.'));
+      toast.error(getApiErrorMessage(error, 'Could not apply that coupon.'));
     } finally {
       setIsApplyingCoupon(false);
     }
@@ -206,7 +206,7 @@ export function useCartViewModel() {
         setPaymentProcessing(true);
         const pay = await foodRepository.initiatePayment(orderId);
         if (!pay.razorpayOrderId || !pay.razorpayKey) {
-          throw new Error('Failed to initiate payment. Please try again.');
+          throw new Error('Could not start the payment. Please try again.');
         }
         setPaymentProcessing(false);
 
@@ -232,7 +232,7 @@ export function useCartViewModel() {
             razorpayPaymentId: result.razorpay_payment_id,
             razorpaySignature: result.razorpay_signature,
           });
-          toast.success('Payment verified successfully!');
+          toast.success('Your payment has been confirmed.');
         } catch (error) {
           // Cancelled / failed payment — the order survives as COD (backend
           // creates every order COD-first). Reference behavior + strings.

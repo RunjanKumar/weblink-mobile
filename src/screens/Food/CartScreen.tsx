@@ -49,7 +49,7 @@ export function CartScreen({navigation}: Props) {
           return; // guard blocked it; the viewmodel already toasted the reason
         }
         setSheetOpen(false);
-        toast.success('Order placed successfully!');
+        toast.success('Your order has been placed.');
         if (IS_WEB_BUILD) {
           // Drop Cart (and FoodDetail) from history: the cart was just cleared,
           // so going Back to it would land on the empty state.
@@ -60,7 +60,7 @@ export function CartScreen({navigation}: Props) {
       })
       .catch(error => {
         // Sheet stays open, cart intact — the guest can retry (reference).
-        toast.error(getApiErrorMessage(error, 'Failed to place order. Please try again.'));
+        toast.error(getApiErrorMessage(error, 'Could not place your order. Please try again.'));
       });
   };
 
