@@ -70,3 +70,88 @@ describe('getApiErrorMessage', () => {
     );
   });
 });
+
+/**
+ * The backend ships TWO error envelopes on the same deployment. Every body below
+ * is real, captured from the dev API — do not "tidy" them into one shape, because
+ * the point of these cases is that the shapes genuinely differ.
+ *
+ * The `msg` form carries the device/hardware failures, which is the set a guest
+ * most needs to read. It used to be ignored entirely, so "Device is Offline"
+ * reached the screen as "We could not process that request…".
+ */
+describe('getApiErrorMessage — real backend envelopes', () => {
+  it('reads the `msg` envelope the device errors use', () => {
+    // POST /api/rooms/device/exec against an offline controller → 400
+    expect(getApiErrorMessage(axiosErrorWith(400, {msg: 'Device is Offline'}), FALLBACK)).toBe(
+      'Device is Offline',
+    );
+  });
+
+  it('reads `msg` for an unknown channel', () => {
+    expect(
+      getApiErrorMessage(axiosErrorWith(400, {msg: 'device channel not found'}), FALLBACK),
+    ).toBe('device channel not found');
+  });
+
+  it('still reads the `message` envelope the validation errors use', () => {
+    expect(
+      getApiErrorMessage(
+        axiosErrorWith(400, {
+          statusCode: 400,
+          status: false,
+          message: 'action is required',
+          type: 'BAD_REQUEST',
+        }),
+        FALLBACK,
+      ),
+    ).toBe('action is required');
+  });
+
+  it('reads the 401 envelope', () => {
+    expect(
+      getApiErrorMessage(
+        axiosErrorWith(401, {
+          statusCode: 401,
+          message: 'Unauthorized access!',
+          status: false,
+          type: 'UNAUTHORIZED',
+        }),
+        FALLBACK,
+      ),
+    ).toBe('Unauthorized access!');
+  });
+
+  it('prefers `message` over `msg` when a body somehow carries both', () => {
+    expect(
+      getApiErrorMessage(axiosErrorWith(400, {message: 'Primary', msg: 'Secondary'}), FALLBACK),
+    ).toBe('Primary');
+  });
+
+  it('reads a nested error object and a validation array', () => {
+    expect(getApiErrorMessage(axiosErrorWith(400, {error: {msg: 'Nested reason'}}), FALLBACK)).toBe(
+      'Nested reason',
+    );
+    expect(
+      getApiErrorMessage(axiosErrorWith(422, {errors: [{message: 'Email is invalid'}]}), FALLBACK),
+    ).toBe('Email is invalid');
+  });
+
+  it('refuses an HTML error page from a proxy', () => {
+    const html = '<!doctype html><html><body>502 Bad Gateway</body></html>';
+    expect(getApiErrorMessage(axiosErrorWith(502, html), FALLBACK)).toBe(
+      'Our system is not responding just now. Please try again in a moment.',
+    );
+  });
+
+  it('refuses a dump too long to be a sentence', () => {
+    const dump = {msg: `Error: ${'at Object.<anonymous> (/srv/app/index.js:1:1) '.repeat(20)}`};
+    expect(getApiErrorMessage(axiosErrorWith(400, dump), FALLBACK)).toBe(
+      'We could not process that request. Please check the details and try again.',
+    );
+  });
+
+  it('ignores an empty or whitespace-only backend message', () => {
+    expect(getApiErrorMessage(axiosErrorWith(418, {msg: '   '}), FALLBACK)).toBe(FALLBACK);
+  });
+});

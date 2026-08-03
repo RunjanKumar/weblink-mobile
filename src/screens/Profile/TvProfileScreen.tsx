@@ -10,7 +10,7 @@ import {
   GlassButton,
   GlassPanel,
   MetaRow,
-  SERIF,
+  DISPLAY,
   TvPanelHeader,
   TvScreen,
 } from '../../components/TvGlass';
@@ -125,8 +125,9 @@ export function TvProfileScreen({navigation}: Props) {
                   fontSize: 16,
                   marginTop: 4,
                   textAlign: 'center',
-                  fontFamily: SERIF,
-                  fontStyle: 'italic',
+                  fontFamily: DISPLAY,
+                  fontWeight: '300',
+                  letterSpacing: 0.8,
                 }}>
                 {hotel.name}
               </Text>

@@ -1,5 +1,5 @@
-import React from 'react';
-import {ActivityIndicator, Text, View} from 'react-native';
+import React, {useEffect, useRef} from 'react';
+import {ActivityIndicator, Animated, Platform, Text, View} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {toast} from '../../../components';
 import {
@@ -24,39 +24,103 @@ import type {CurtainState} from '../../../constants/roomControl';
  * without watching it move.
  */
 
-/** Circle button + caption — the Figma's ‹ ‖ › row. */
+/**
+ * Circle button + caption — the Figma's ‹ ‖ › row.
+ *
+ * THREE states, deliberately far apart. The old design separated on from off by
+ * a 20%-gold tint behind a gold icon, which on a bright glass card at ten feet
+ * was no separation at all — a guest could not tell which command was running:
+ *
+ *   off      faint glass fill, WHITE icon        — this line is not energised
+ *   on       SOLID gold fill, DARK icon          — this line is energised
+ *   moving   the on style, breathing             — the curtain is running
+ *
+ * On/off is carried by fill AND icon colour together, not by a tint alone, so it
+ * survives both the light and dark backdrops. There is no spinner: the exec
+ * returns in well under the ~15s the curtain takes to travel, so a loader would
+ * flash and vanish while the real feedback — the button lighting up — is what
+ * the guest is waiting for.
+ */
 function CurtainButton({
   icon,
   label,
   active,
+  moving,
   disabled,
   onPress,
 }: {
   icon: string;
   label: string;
   active: boolean;
+  /** This line is energised AND the motor is travelling — pulse it. */
+  moving: boolean;
   disabled: boolean;
   onPress: () => void;
 }) {
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!moving) {
+      pulse.setValue(0);
+      return;
+    }
+    // Opacity only — no layout, no transform. Light Control taught us how little
+    // headroom the webOS SoC has, and this can run for the ~15s of curtain travel.
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 620,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: 620,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [moving, pulse]);
+
   return (
     <View style={{alignItems: 'center', marginHorizontal: 7}}>
       <TvPressable
         onPress={onPress}
         disabled={disabled}
-        label={`${label} curtain`}
-        restBorderColor={active ? DS.gold : DS.border}
+        label={`${label} curtain${active ? ' (active)' : ''}`}
+        restBorderColor={active ? DS.champagne : DS.border}
         style={{
           width: 32,
           height: 32,
           borderRadius: 16,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: active ? DS.glassGold : 'rgba(255,255,255,0.10)',
-          opacity: disabled ? 0.45 : 1,
+          overflow: 'hidden',
+          backgroundColor: active ? DS.gold : 'rgba(255,255,255,0.10)',
+          // The lit button never dims — it is the answer to "what is running?".
+          opacity: disabled && !active ? 0.4 : 1,
         }}>
-        <Icon name={icon} size={15} color={active ? DS.gold : DS.text} />
+        {/* Breathing highlight — reads as "this is running right now". */}
+        {moving ? (
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: '#FFFFFF',
+              opacity: pulse.interpolate({inputRange: [0, 1], outputRange: [0, 0.38]}),
+            }}
+          />
+        ) : null}
+        <Icon name={icon} size={15} color={active ? DS.dark : DS.text} />
       </TvPressable>
       <Text
+        numberOfLines={1}
         style={{
           color: active ? DS.gold : DS.muted,
           fontSize: 9,
@@ -78,9 +142,28 @@ const activeFor = (state: CurtainState) => ({
   open: state === 'open',
 });
 
+/**
+ * The heading doubles as the status line. There is no room in a 150px card for
+ * a fourth row, and a guest who has just pressed a button wants the answer in
+ * words, not only in colour — so the name yields to "MAIN · OPENING" for the
+ * ~15s of travel, then reverts. The glyph underneath still says which curtain
+ * this column is, so nothing is lost while the caption is borrowed.
+ */
+function headingFor(curtain: Curtain): {text: string; moving: boolean} {
+  if (!curtain.travelling) {
+    return {text: curtain.label.toUpperCase(), moving: false};
+  }
+  // `?? label` for noUncheckedIndexedAccess — split always yields one element,
+  // but the compiler cannot know that.
+  const short = (curtain.label.split(' ')[0] ?? curtain.label).toUpperCase();
+  const verb = curtain.travelling === 'open' ? 'OPENING' : 'CLOSING';
+  return {text: `${short} · ${verb}`, moving: true};
+}
+
 function CurtainColumn({curtain}: {curtain: Curtain}) {
   const lit = activeFor(curtain.state);
   const Glyph = curtain.kind === 'sheer' ? SheerCurtainIcon : MainCurtainIcon;
+  const heading = headingFor(curtain);
 
   const send = (run: () => Promise<void>) => () => {
     run().catch(error =>
@@ -96,13 +179,13 @@ function CurtainColumn({curtain}: {curtain: Curtain}) {
       <Text
         numberOfLines={1}
         style={{
-          color: DS.text,
+          color: heading.moving ? DS.gold : DS.text,
           fontSize: 12,
           fontWeight: '600',
           letterSpacing: 0.8,
           fontFamily: FONT,
         }}>
-        {curtain.label.toUpperCase()}
+        {heading.text}
       </Text>
       <View style={{marginVertical: 3}}>
         <Glyph size={38} color={DS.gold} />
@@ -112,6 +195,7 @@ function CurtainColumn({curtain}: {curtain: Curtain}) {
           icon="chevron-back"
           label="Close"
           active={lit.close}
+          moving={curtain.travelling === 'closed'}
           disabled={curtain.isBusy}
           onPress={send(curtain.close)}
         />
@@ -119,6 +203,8 @@ function CurtainColumn({curtain}: {curtain: Curtain}) {
           icon="pause"
           label="Stop"
           active={lit.stop}
+          // Stop is a parked curtain, never a travelling one — no pulse.
+          moving={false}
           disabled={curtain.isBusy}
           onPress={send(curtain.stop)}
         />
@@ -126,6 +212,7 @@ function CurtainColumn({curtain}: {curtain: Curtain}) {
           icon="chevron-forward"
           label="Open"
           active={lit.open}
+          moving={curtain.travelling === 'open'}
           disabled={curtain.isBusy}
           onPress={send(curtain.open)}
         />

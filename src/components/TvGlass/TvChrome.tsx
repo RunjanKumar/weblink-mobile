@@ -5,7 +5,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import Svg, {Path, Polygon, Rect} from 'react-native-svg';
 import {useNavigation} from '@react-navigation/native';
 import {toast} from '../Toast';
-import {DS, FONT, GLASS_BLUR, SERIF, TvBackdrop, TvPressable, toSource} from './TvGlass';
+import {DS, DISPLAY, FONT, GLASS_BLUR, TvBackdrop, TvPressable, toSource} from './TvGlass';
 import {NoSmokingIcon} from './RoomIcons';
 import {useDashboardViewModel} from '../../viewmodels';
 import {useFoodOrder} from '../../store/FoodOrderContext';
@@ -257,7 +257,14 @@ export function TvFooter({marginTop = 16}: {marginTop?: number}) {
           Non-Smoking Room
         </Text>
       </View>
-      <Text style={{color: DS.champagne, fontSize: 23, fontFamily: SERIF, fontStyle: 'italic'}}>
+      <Text
+        style={{
+          color: DS.champagne,
+          fontSize: 23,
+          fontFamily: DISPLAY,
+          fontWeight: '300',
+          letterSpacing: 1.2,
+        }}>
         {dash.hotel?.name ?? 'your hotel'}
       </Text>
       {/* Vendor mark, right-aligned. flex: 1 mirrors the non-smoking block on

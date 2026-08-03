@@ -1,9 +1,5 @@
 import axios from 'axios';
 
-interface BackendError {
-  message?: string;
-}
-
 /**
  * Axios sets `error.message` to "Request failed with status code 400" for every
  * non-2xx response. That string used to be returned verbatim, which is how a
@@ -36,6 +32,79 @@ const TIMEOUT_MESSAGE = 'The request timed out. Please check your connection and
 const OFFLINE_MESSAGE = 'No internet connection. Please check your network and try again.';
 
 /**
+ * Anything longer than this is a stack trace, an HTML error page or a dump —
+ * not a sentence written for a guest — so it is rejected in favour of our own
+ * copy rather than printed across a 55" screen.
+ */
+const MAX_BACKEND_MESSAGE = 200;
+
+/**
+ * The backend does NOT use one error envelope. Both of these are real, captured
+ * from POST /api/rooms/device/exec on the same deployment:
+ *
+ *   {"msg":"Device is Offline"}
+ *   {"statusCode":400,"status":false,"message":"action is required",...}
+ *
+ * The device/hardware errors — offline, not responding, channel not found — are
+ * the `msg` shape, which is precisely the set a guest most needs to read. Only
+ * `message` used to be checked, so every one of them fell through to the generic
+ * 400 line ("We could not process that request…") and the real reason was lost.
+ *
+ * Ordered most- to least- authoritative; the first usable string wins.
+ */
+function readable(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const text = value.trim();
+  if (!text || text.length > MAX_BACKEND_MESSAGE) {
+    return null;
+  }
+  // An HTML error page from a proxy, not a message from the API.
+  if (text.startsWith('<')) {
+    return null;
+  }
+  return AXIOS_STATUS_MESSAGE.test(text) ? null : text;
+}
+
+function pickBackendMessage(data: unknown): string | null {
+  if (typeof data === 'string') {
+    return readable(data);
+  }
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
+  const body = data as Record<string, unknown>;
+
+  const direct = readable(body.message) ?? readable(body.msg) ?? readable(body.error);
+  if (direct) {
+    return direct;
+  }
+
+  // `error` / `errors[0]` as an object — e.g. {error: {msg: "…"}} or a
+  // validation array. Nested one level only: deeper than that is a dump.
+  const candidates: unknown[] = [
+    body.error,
+    Array.isArray(body.errors) ? body.errors[0] : undefined,
+  ];
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === 'object') {
+      const nested = candidate as Record<string, unknown>;
+      const found = readable(nested.message) ?? readable(nested.msg);
+      if (found) {
+        return found;
+      }
+    } else {
+      const found = readable(candidate);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * Extracts a user-friendly message from any thrown error.
  * Mirrors the web app's `getApiErrorMessage`, adapted for RN network conditions.
  */
@@ -45,10 +114,10 @@ export function getApiErrorMessage(
 ): string {
   if (axios.isAxiosError(error)) {
     // The backend's own message wins — it is the only source that knows WHICH
-    // detail was wrong ("This slot is already booked").
-    const data = error.response?.data as BackendError | undefined;
-    if (data?.message && !AXIOS_STATUS_MESSAGE.test(data.message)) {
-      return data.message;
+    // detail was wrong ("Device is Offline", "This slot is already booked").
+    const backend = pickBackendMessage(error.response?.data);
+    if (backend) {
+      return backend;
     }
     if (error.code === 'ECONNABORTED') {
       return TIMEOUT_MESSAGE;

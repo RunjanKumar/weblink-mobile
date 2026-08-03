@@ -28,14 +28,17 @@ export const STATUS_TONE_COLORS: Record<ColorScheme, Record<StatusTone, string>>
     danger: '#ef4444',
     muted: '#6b7280',
   },
+  // Warmed to match the light palette (see colors.ts) — the cool 700s made the
+  // gold UI around them read yellow. Hues that must stay recognisably cool
+  // (sky, purple) only lose their electric edge; all stay ≥4.5:1 on the cards.
   light: {
     warning: '#b45309',
-    info: '#1d4ed8',
-    sky: '#075985',
-    purple: '#7e22ce',
-    success: '#15803d',
-    danger: '#dc2626',
-    muted: '#5b616c',
+    info: '#215fa8',
+    sky: '#0e6d78',
+    purple: '#6d3fbd',
+    success: '#2f7233',
+    danger: '#c0342a',
+    muted: '#6a6259',
   },
 };
 

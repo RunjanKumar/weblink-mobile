@@ -220,19 +220,19 @@ export function TvLightsScreen({navigation}: Props) {
   const room = useRoomControl();
   const [demo, setDemo] = useState(DEMO_LIGHTS);
 
-  // The master scene leads the grid as "Master Light" (Figma tile 1); the rest
-  // of the scenes — DND, MMR, lighting moods — belong to the dashboard.
-  const fixtures = [
-    ...(room.master ? [room.master] : []),
-    ...room.lights.filter(d => d._id !== room.master?._id),
-  ];
+  // Fixtures only. Master Scene used to lead this grid, but it is already a
+  // square in the dashboard's Light Scenes card — two tiles for one channel read
+  // as two different switches, and toggling one left the other stale. Scenes
+  // live on the dashboard; this screen is the individual lights.
+  const fixtures = room.lights;
   const isDemo = !room.isLoading && !room.error && fixtures.length === 0;
 
   const onToggle = (device: RoomDevice) => {
-    const call = device.isMasterScene ? room.toggleMaster() : room.toggleDevice(device);
-    call.catch(error =>
-      toast.error(getApiErrorMessage(error, 'Could not update the light. Please try again.')),
-    );
+    room
+      .toggleDevice(device)
+      .catch(error =>
+        toast.error(getApiErrorMessage(error, 'Could not update the light. Please try again.')),
+      );
   };
 
   return (

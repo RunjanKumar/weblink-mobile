@@ -4,7 +4,13 @@
  *  - The rest are non-sensitive cache/preferences stored in MMKV.
  */
 export const STORAGE_KEYS = {
-  USER_PROFILE: 'cache.userProfile',
+  /**
+   * Last known session (user + hotel + booking, NEVER the token). Written on
+   * every successful login and profile refresh, and read on app start when the
+   * profile call cannot be reached — that is what keeps a signed-in guest
+   * signed in through a flat network instead of dumping them on Login.
+   */
+  SESSION: 'cache.session',
   THEME_SCHEME: 'settings.themeScheme',
   REMEMBERED_EMAIL: 'settings.rememberedEmail',
   FOOD_CART: 'cache.foodCart',

@@ -3,7 +3,7 @@ export {
   SHADOW,
   GLASS_BLUR,
   FONT,
-  SERIF,
+  DISPLAY,
   toSource,
   GlassSheen,
   TvBackdrop,

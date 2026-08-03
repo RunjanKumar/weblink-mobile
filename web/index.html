@@ -16,8 +16,23 @@
         height: 100%;
         /* Boot background = the LIGHT theme's background (the app default).
            ThemeProvider re-syncs this on every scheme change. */
-        background: #f2f3f5;
+        background: #f5f2ee;
         overflow: hidden;
+        /*
+          The document-wide sans-serif default. This is load-bearing on the TV,
+          not a nicety: react-native-web's <Text> sets NO font-family of its own,
+          so every string that does not pass an explicit `fontFamily` inherits
+          from here. With this rule absent the inherited value is webOS
+          Chromium's "standard" font, which is a SERIF — which is why untouched
+          text came out serif in the .ipk while FONT-styled text did not.
+
+          Keep this list in sync with SANS in src/components/TvGlass/TvGlass.tsx.
+          The spec families (SF Pro, Inter) are all absent on webOS, so the TV
+          falls through to LG's own UI sans; desktop dev still resolves the
+          spec families first.
+        */
+        font-family: 'SF Pro Display', 'SF Pro Text', Inter, 'Helvetica Neue', 'Segoe UI', Roboto,
+          'LG Smart UI', 'Museo Sans', Arial, sans-serif;
       }
       #root {
         display: flex;

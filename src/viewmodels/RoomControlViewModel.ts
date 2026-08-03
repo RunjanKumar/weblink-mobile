@@ -1,7 +1,12 @@
 import {useCallback, useEffect, useRef} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {roomRepository} from '../repositories/room.repository';
-import {DEVICE_ACTION, DEVICE_TYPE, isCurtainChannel} from '../constants/roomControl';
+import {
+  DEVICE_ACTION,
+  DEVICE_TYPE,
+  isCurtainChannel,
+  isHiddenChannel,
+} from '../constants/roomControl';
 import {getApiErrorMessage} from '../utils/errorHandler';
 import type {ExecDevicePayload, RoomDevice} from '../models/device.model';
 
@@ -21,7 +26,9 @@ export function useRoomControl() {
     queryFn: () => roomRepository.getDevices(),
   });
 
-  const devices = query.data ?? [];
+  // Internal channels are dropped ONCE, here, so no consumer can leak them:
+  // every list below is derived from this one. See `isHiddenChannel`.
+  const devices = (query.data ?? []).filter(d => !isHiddenChannel(d.friendlyname));
   // Curtain motor lines come back as ordinary switch channels. They are pulled
   // out of BOTH lists: as a "light" a guest could energise open and close at the
   // same time (a stalled motor), and as a "scene" they would appear twice.
@@ -61,6 +68,27 @@ export function useRoomControl() {
       );
     },
     [queryClient],
+  );
+
+  /**
+   * Correct a channel's state in the UI WITHOUT calling the backend.
+   *
+   * For hardware that already interlocks a pair of channels: the curtain
+   * controller drops the close line by itself the moment open is energised, so
+   * sending our own TurnOff would be a redundant exec against a relay that is
+   * already open. The screen still has to stop showing the old line as lit,
+   * which is exactly — and only — what this does.
+   *
+   * Returns the state it replaced, so the caller can put it back if the command
+   * it was pairing this with then fails.
+   */
+  const markDevice = useCallback(
+    (device: RoomDevice, isOn: boolean): boolean => {
+      const previous = device.isOn;
+      patchDevice(device._id, {isOn});
+      return previous;
+    },
+    [patchDevice],
   );
 
   /**
@@ -174,6 +202,7 @@ export function useRoomControl() {
     refetch: query.refetch,
     toggleDevice,
     setDevice,
+    markDevice,
     toggleMaster,
     setFanLevel,
   };

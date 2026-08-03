@@ -3,7 +3,7 @@ import {Pressable, ScrollView, Text, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {Card, ErrorState, Header, Loader, Stepper, Toggle, toast} from '../../components';
+import {ErrorState, Header, Loader, Stepper, Toggle, toast} from '../../components';
 import {useRoomControl} from '../../viewmodels';
 import {useTVFocus} from '../../hooks/useTVFocus';
 import {useTheme} from '../../theme';
@@ -97,17 +97,10 @@ function DeviceCard({
 
 export function LightsScreen({navigation}: Props) {
   const {theme} = useTheme();
-  const {
-    focused: masterFocused,
-    onFocus: onMasterFocus,
-    onBlur: onMasterBlur,
-  } = useTVFocus();
   const room = useRoomControl();
 
   const onToggle = (device: RoomDevice) =>
     room.toggleDevice(device).catch(() => toast.error('Could not update the device.'));
-  const onMaster = () =>
-    room.toggleMaster().catch(() => toast.error('Could not toggle the master scene.'));
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}} edges={['top']}>
@@ -119,46 +112,9 @@ export function LightsScreen({navigation}: Props) {
         <ErrorState message={room.error} onRetry={room.refetch} />
       ) : (
         <ScrollView contentContainerStyle={{paddingHorizontal: 20, paddingBottom: 32}}>
-          {room.master ? (
-            // Whole card toggles the master scene; the power button is now just
-            // the indicator.
-            <Pressable
-              onPress={onMaster}
-              onFocus={onMasterFocus}
-              onBlur={onMasterBlur}
-              focusable
-              accessibilityRole="switch"
-              accessibilityState={{checked: room.masterOn}}
-              accessibilityLabel="Master scene">
-              <Card
-                className="mb-4 flex-row items-center justify-between"
-                style={{
-                  borderWidth: 2,
-                  borderColor: masterFocused ? theme.colors.focusRing : theme.colors.border,
-                }}>
-                <View className="flex-1 pr-3">
-                  <Text className="text-sm font-semibold text-content">Master Scene</Text>
-                  <Text className="mt-0.5 text-xs text-content-tertiary">
-                    Turn on Master Scene, to turn on all the lights.
-                  </Text>
-                </View>
-                {/* Reference: round power button, amber when on. */}
-                <View
-                  className="h-11 w-11 items-center justify-center rounded-full"
-                  pointerEvents="none"
-                  style={{
-                    backgroundColor: room.masterOn ? theme.colors.primary : theme.colors.muted,
-                  }}>
-                  <Icon
-                    name="power"
-                    size={18}
-                    color={room.masterOn ? theme.colors.primaryForeground : '#ffffff'}
-                  />
-                </View>
-              </Card>
-            </Pressable>
-          ) : null}
-
+          {/* No Master Scene card here — it is already on the home dashboard,
+              and one channel behind two switches on two screens goes stale the
+              moment either is pressed. */}
           {room.lights.length === 0 ? (
             <Text className="mt-10 text-center text-sm text-content-tertiary">
               No controllable devices found for this room.

@@ -358,38 +358,64 @@ export function NoSmokingIcon({size = 28, color}: {size?: number; color: string}
 }
 
 /**
- * Curtain marks for the dashboard's Curtain Control card, traced from the
- * client's Figma.
+ * Curtain marks for the dashboard's Curtain Control card.
  *
- * The two have to be tellable apart AS SILHOUETTES — a guest reading the card
- * from the bed sees shape before they read the label. So the main curtain is a
- * PARTED pair of pleated drapes with a gap down the middle, and the sheer is one
- * FLAT panel filling the whole window. Same rod on both, which is what makes
- * them read as a set.
+ * SOLID, not outlined — the one decision everything else here follows from.
+ * These were hairline outlines twice over and the client rejected both: at the
+ * card's 38px a 2.9 stroke lands under 2 device px, so the mark dissolves into
+ * a wireframe and reads as cheap next to the filled glyphs around it. A fill
+ * holds its silhouette at any size. The folds are cut OUT of that fill with
+ * `fillRule="evenodd"`, which keeps them as negative space — no second colour,
+ * so the mark still works on the glass card, the gold pressed state, and the
+ * light backdrop alike.
+ *
+ * Three things carry "curtain" rather than "plank", all of them necessary:
+ *   flared hem   the drape widens as it falls
+ *   scalloped hem  fabric never ends in a straight cut
+ *   tall panels  a 46-of-64 drop; anything shorter reads as a pelmet, which is
+ *                exactly how the first filled attempt failed
+ *
+ * The two stay tellable apart AS SILHOUETTES, since a guest reading the card
+ * from the bed sees shape before they read the label: main is a PARTED pair
+ * with a 16-unit gap, sheer is ONE continuous panel spanning the whole window
+ * with finer folds. Same rod on both, which is what makes them read as a set.
+ *
+ * Re-check any change at 38px, not at a comfortable preview size. Every failure
+ * these marks have had — the basket, the hourglass, the fence posts, the
+ * pelmet — was invisible until they were rendered small.
  */
+
+/** Rod + finials. Identical on both marks, on purpose. */
+function CurtainRod({color}: {color: string}) {
+  return (
+    <>
+      <Rect x={4} y={5.2} width={56} height={3.2} rx={1.6} fill={color} />
+      <Circle cx={3.2} cy={6.8} r={2.5} fill={color} />
+      <Circle cx={60.8} cy={6.8} r={2.5} fill={color} />
+    </>
+  );
+}
+
 export function MainCurtainIcon({size = 40, color}: {size?: number; color: string}) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64">
-      <G
-        fill="none"
-        stroke={color}
-        strokeWidth={size <= 40 ? 2.9 : 2.4}
-        strokeLinecap="round"
-        strokeLinejoin="round">
-        {/* rod + finials */}
-        <Path d="M7 11 H57" />
-        <Circle cx={6} cy={11} r={1.9} fill={color} />
-        <Circle cx={58} cy={11} r={1.9} fill={color} />
-        {/* left drape: hangs straight, pinches at the tie-back, flares at the
-            hem — the outline that says "gathered fabric" and not "rectangle" */}
-        <Path d="M11 13 V44 Q11 52 17 54 H28 Q21 40 23 13" />
-        {/* ONE pleat per panel. Two crowded into mush at the card's 44px: the
-            drape's own pinched outline already carries the "fabric" reading. */}
-        <Path d="M17 14 Q15 36 20 53" />
-        {/* right drape: the mirror */}
-        <Path d="M53 13 V44 Q53 52 47 54 H36 Q43 40 41 13" />
-        <Path d="M47 14 Q49 36 44 53" />
-      </G>
+      <CurtainRod color={color} />
+      {/* Left drape: heading x9–24 spilling to x6.6–26.4 at the hem, three
+          scallops, two folds cut through it. TWO folds, not three — a third
+          leaves ~1px of fabric between slits at 38px and the panel greys out. */}
+      <Path
+        fill={color}
+        fillRule="evenodd"
+        d="M9 9 H24 L26.4 55 Q23.1 57.8 19.8 55 Q16.5 57.8 13.2 55 Q9.9 57.8 6.6 55 Z
+           M12.4 12 H14.8 V50 H12.4 Z M18.2 12 H20.6 V50 H18.2 Z"
+      />
+      {/* right drape: the mirror about x=32 */}
+      <Path
+        fill={color}
+        fillRule="evenodd"
+        d="M40 9 H55 L57.4 55 Q54.1 57.8 50.8 55 Q47.5 57.8 44.2 55 Q40.9 57.8 37.6 55 Z
+           M43.4 12 H45.8 V50 H43.4 Z M49.2 12 H51.6 V50 H49.2 Z"
+      />
     </Svg>
   );
 }
@@ -397,26 +423,21 @@ export function MainCurtainIcon({size = 40, color}: {size?: number; color: strin
 export function SheerCurtainIcon({size = 40, color}: {size?: number; color: string}) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64">
-      <G
-        fill="none"
-        stroke={color}
-        strokeWidth={size <= 40 ? 2.9 : 2.4}
-        strokeLinecap="round"
-        strokeLinejoin="round">
-        {/* rod + finials — identical to the main curtain, on purpose */}
-        <Path d="M7 11 H57" />
-        <Circle cx={6} cy={11} r={1.9} fill={color} />
-        <Circle cx={58} cy={11} r={1.9} fill={color} />
-        {/* one flat panel across the whole window. Wider than the drapes above
-            it: "covers the window" is the whole difference between the two. */}
-        <Path d="M12 13 V52 H52 V13" />
-        {/* the strands that make it read as SHEER rather than a blackout blind:
-            wavy, not straight, because a net panel never hangs flat. Three, not
-            four — at 44px a fourth closed the gaps and it went solid. */}
-        <Path d="M22 14 Q19 28 22 38 Q25 46 22 51" />
-        <Path d="M32 14 Q29 28 32 38 Q35 46 32 51" />
-        <Path d="M42 14 Q39 28 42 38 Q45 46 42 51" />
-      </G>
+      <CurtainRod color={color} />
+      {/* One continuous panel across the whole window — "covers it all" is the
+          entire difference from the parted drapes above. Six scallops and five
+          folds against the main's three and two: finer pleating is what says
+          NET rather than blackout, without resorting to a lower opacity, which
+          was tried and simply read as disabled. */}
+      <Path
+        fill={color}
+        fillRule="evenodd"
+        d="M9 9 H55 L56.5 55 Q52.42 57.4 48.33 55 Q44.25 57.4 40.17 55 Q36.08 57.4 32 55
+           Q27.92 57.4 23.83 55 Q19.75 57.4 15.67 55 Q11.58 57.4 7.5 55 Z
+           M14.83 12 H17.03 V50 H14.83 Z M22.87 12 H25.07 V50 H22.87 Z
+           M30.9 12 H33.1 V50 H30.9 Z M38.93 12 H41.13 V50 H38.93 Z
+           M46.97 12 H49.17 V50 H46.97 Z"
+      />
     </Svg>
   );
 }

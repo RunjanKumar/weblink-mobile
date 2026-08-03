@@ -9,7 +9,7 @@ import {
   GlassButton,
   GlassPanel,
   GoldButton,
-  SERIF,
+  DISPLAY,
   TvPanelHeader,
   TvPressable,
   TvScreen,
@@ -134,7 +134,15 @@ export function TvFeedbackScreen({navigation}: Props) {
             onBack={() => navigation.goBack()}
           />
 
-          <Text style={{color: DS.text, fontSize: 26, lineHeight: 34, fontFamily: SERIF, fontStyle: 'italic'}}>
+          <Text
+            style={{
+              color: DS.text,
+              fontSize: 26,
+              lineHeight: 34,
+              fontFamily: DISPLAY,
+              fontWeight: '300',
+              letterSpacing: 1.2,
+            }}>
             Rate your stay
           </Text>
           <Text

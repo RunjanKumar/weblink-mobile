@@ -99,12 +99,32 @@ export const GLASS_BLUR =
     ? ({backdropFilter: 'blur(24px) saturate(1.15)'} as object)
     : null;
 
-/* spec: SF Pro Display, alternative Inter — fallback chain until files ship */
-export const FONT =
-  Platform.OS === 'web'
-    ? "'SF Pro Display', 'SF Pro Text', Inter, 'Helvetica Neue', 'Segoe UI', Roboto, sans-serif"
-    : undefined;
-export const SERIF = Platform.OS === 'web' ? 'Georgia, "Times New Roman", serif' : 'serif';
+/*
+ * spec: SF Pro Display, alternative Inter — fallback chain until files ship.
+ *
+ * The tail of the chain is what actually renders in the .ipk. webOS has none of
+ * the design-spec families (no SF Pro, no Inter, no Segoe UI, no Roboto), so on
+ * the TV every one of those misses and the pick lands on LG's own UI sans:
+ * 'LG Smart UI' on webOS 4+, 'Museo Sans' on the older sets. Naming them here
+ * rather than leaning on the generic `sans-serif` keyword means the TV resolves
+ * to a known humanist sans instead of whatever the UA has that keyword aliased
+ * to on that firmware. Desktop dev is unaffected — SF Pro / Segoe UI still hit
+ * first there, so local preview matches the spec.
+ */
+const SANS =
+  "'SF Pro Display', 'SF Pro Text', Inter, 'Helvetica Neue', 'Segoe UI', Roboto, " +
+  "'LG Smart UI', 'Museo Sans', Arial, sans-serif";
+
+export const FONT = Platform.OS === 'web' ? SANS : undefined;
+
+/**
+ * The oversized greeting / quote accents. Sans, not serif: webOS ships no
+ * Georgia and no Times, so the old serif stack resolved to the firmware's
+ * default serif — an unpredictable face the design was never checked against.
+ * Same stack as FONT, differentiated by size and letter-spacing at the call
+ * sites instead of by family.
+ */
+export const DISPLAY = Platform.OS === 'web' ? SANS : undefined;
 
 /** Webpack emits asset URLs (string); Metro emits require ids (number). */
 export function toSource(asset: unknown): ImageSourcePropType {

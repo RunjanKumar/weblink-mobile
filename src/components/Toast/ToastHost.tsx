@@ -18,12 +18,24 @@ const KIND_ICON: Record<ToastItem['kind'], string> = {
   info: 'information-circle',
 };
 
-/** Ten-foot accents: the dashboard's own palette, so a toast reads as part of
- *  the glass surface rather than a phone notification pasted over it. */
-const TV_ACCENT: Record<ToastItem['kind'], string> = {
-  success: DS.good,
-  error: DS.danger,
-  info: DS.gold,
+/**
+ * Ten-foot accents: the dashboard's own palette, so a toast reads as part of the
+ * glass surface rather than a phone notification pasted over it.
+ *
+ * Each kind carries THREE values, not one. Colour used to arrive as a 4px rule
+ * down the left edge, which on a 16px-rounded card is a bare stripe clipped by
+ * the corner — it read as something stuck onto the glass, and at ten feet an
+ * error was indistinguishable from an info. The accent now gets AREA instead: a
+ * tinted chip behind the icon and a tinted card edge, both drawn from the same
+ * hue, so the toast stays one object and the kind is legible across the room.
+ *
+ * The rgba values are the solid colour at low alpha — kept literal because RN
+ * has no colour-mix, and a helper would only hide three constants.
+ */
+const TV_ACCENT: Record<ToastItem['kind'], {solid: string; tint: string; edge: string}> = {
+  success: {solid: DS.good, tint: 'rgba(143,217,168,0.18)', edge: 'rgba(143,217,168,0.55)'},
+  error: {solid: DS.danger, tint: 'rgba(242,139,130,0.18)', edge: 'rgba(242,139,130,0.55)'},
+  info: {solid: DS.gold, tint: 'rgba(212,180,131,0.20)', edge: 'rgba(212,180,131,0.55)'},
 };
 
 function ToastCard({item, onDone}: {item: ToastItem; onDone: (id: number) => void}) {
@@ -47,8 +59,9 @@ function ToastCard({item, onDone}: {item: ToastItem; onDone: (id: number) => voi
     return () => clearTimeout(timer);
   }, [item, opacity, translate, onDone]);
 
+  const tv = TV_ACCENT[item.kind];
   const accent = IS_TV
-    ? TV_ACCENT[item.kind]
+    ? tv.solid
     : item.kind === 'success'
       ? theme.colors.success
       : item.kind === 'error'
@@ -71,14 +84,26 @@ function ToastCard({item, onDone}: {item: ToastItem; onDone: (id: number) => voi
               // NEARLY OPAQUE warm-dark plate, because backdrop-filter is off on
               // the TV — a translucent card would let the dashboard's bright
               // tile photos read straight through the message.
-              backgroundColor: 'rgba(30,23,13,0.96)',
+              // A WARM TRANSLUCENT plate, matching the dashboard's PanelCards —
+              // not the dialog's near-opaque one. The dialog can be a dark slab
+              // because it sits on its own dark scrim; a toast sits directly on
+              // the dashboard, where every other surface is frosted glass, so an
+              // opaque box was the only dark object on the screen.
+              //
+              // It cannot be the panels' literal `DS.glass` (white 12%) though:
+              // the panels are legible because the BLURRED BACKDROP is behind
+              // them, whereas a toast lands over the tile photos, and white text
+              // on white glass over a bright photo is unreadable. This is the
+              // same trick the hero uses for text over a photo — a warm scrim —
+              // taken just far enough to hold the message.
+              backgroundColor: 'rgba(46,34,20,0.72)',
               borderRadius: DS.radius,
               borderWidth: 1,
+              // The panels' own border, so the frame reads as the same material.
+              // The kind is carried by the icon chip, which has the area for it.
               borderColor: DS.border,
-              borderLeftWidth: 4,
-              borderLeftColor: accent,
-              paddingHorizontal: 20,
-              paddingVertical: 14,
+              paddingHorizontal: 18,
+              paddingVertical: 13,
               overflow: 'hidden',
               ...SHADOW,
               ...(GLASS_BLUR ?? {}),
@@ -101,7 +126,25 @@ function ToastCard({item, onDone}: {item: ToastItem; onDone: (id: number) => voi
             }),
       }}>
       {IS_TV ? <GlassSheen /> : null}
-      <Icon name={KIND_ICON[item.kind]} size={IS_TV ? 22 : 20} color={accent} />
+      {IS_TV ? (
+        // Chip, not a bare glyph: it is what gives the accent enough area to be
+        // read as a colour at ten feet.
+        <View
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 15,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: tv.tint,
+            borderWidth: 1,
+            borderColor: tv.edge,
+          }}>
+          <Icon name={KIND_ICON[item.kind]} size={17} color={accent} />
+        </View>
+      ) : (
+        <Icon name={KIND_ICON[item.kind]} size={20} color={accent} />
+      )}
       <Text
         style={{
           marginLeft: IS_TV ? 12 : 10,

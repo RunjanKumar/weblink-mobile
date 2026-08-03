@@ -53,7 +53,10 @@ type Props = NativeStackScreenProps<HomeStackParamList, 'Dashboard'>;
    the bump on its own. */
 const HEADER_SIZE = IS_TV
   ? {greeting: 16, name: 30, subtitle: 15, gap: 5, kebab: 48, kebabIcon: 26}
-  : {greeting: 14, name: 24, subtitle: 12, gap: 4, kebab: 40, kebabIcon: 22};
+  : // Phone greeting enlarged on request: the guest's name is the first thing
+    // the screen should say, and at 24 it read as a caption next to the cards
+    // below it. The kebab stays 40 — it is a control, not part of the greeting.
+    {greeting: 17, name: 32, subtitle: 15, gap: 5, kebab: 40, kebabIcon: 22};
 
 /**
  * Which welcome treatment the TV shows. BOTH implementations are kept on
@@ -291,10 +294,12 @@ function DashboardHeader({
       <View className="flex-1">
         {loading ? (
           <View>
-            <Skeleton width={IS_TV ? 300 : 160} height={IS_TV ? 44 : 24} radius={8} />
+            {/* Sized off HEADER_SIZE so the placeholder and the real greeting
+                occupy the same box — otherwise the page jumps as it loads. */}
+            <Skeleton width={IS_TV ? 300 : 200} height={IS_TV ? 44 : 32} radius={8} />
             <Skeleton
-              width={IS_TV ? 200 : 110}
-              height={IS_TV ? 22 : 14}
+              width={IS_TV ? 200 : 130}
+              height={IS_TV ? 22 : 17}
               radius={8}
               style={{marginTop: 10}}
             />

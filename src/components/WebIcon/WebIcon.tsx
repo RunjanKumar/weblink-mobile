@@ -59,12 +59,12 @@ const ACCENTS_BY_SCHEME = {
     laundry: '#22d3ee',
   },
   light: {
-    bell: '#a16207',
-    bulb: '#15803d',
-    snow: '#1d4ed8',
+    bell: '#a1571a',
+    bulb: '#2f7233',
+    snow: '#215fa8',
     food: '#c2410c',
-    facilities: '#6d28d9',
-    laundry: '#0e7490',
+    facilities: '#6d3fbd',
+    laundry: '#0e6d78',
   },
 } as const;
 

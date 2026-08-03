@@ -68,38 +68,48 @@ export const darkColors: ThemeColors = {
  *
  *  - Background is OFF-white, not #fff. Large pure-white fields glare on a TV
  *    panel (tvOS light uses ~#F2F2F7 system backgrounds; LG's own webOS system
- *    UI is off-white). Cards are the only pure white, so they read as elevated.
+ *    UI is off-white). Cards are the lightest surface, so they read as elevated.
  *  - Text is near-black, not #000 (harsh on white at TV brightness).
  *  - The amber brand CANNOT stay #facc15 on white (≈1.8:1 — invisible, as the
- *    on-TV photo showed). Amber-700 (#a16207) keeps the gold identity at ≈5:1.
+ *    on-TV photo showed); it needs a 700-weight gold at ≈5:1.
  *  - Status colors move to their 700-weight variants for the same reason
- *    (#22c55e green is 2.2:1 on white; #15803d is 4.6:1).
+ *    (#22c55e green is 2.2:1 on white; the green here is 5.7:1).
  *  - Focus ring is near-black: an amber ring vanishes against the gold buttons
  *    and barely registers on white cards; a dark ring is visible on both, and
  *    the existing scale bump (Button/tiles) supplies the tvOS-style "lift".
  *
- * Every text token here is ≥4.5:1 (WCAG AA) on the surface it sits on.
+ * WARM neutrals (client feedback, 2026-08-03: the first light pass "looks
+ * yellowish"). The cause was NOT the gold — it was gold sitting on BLUE-gray
+ * neutrals (#f2f3f5 / #1b1d22). Against a cool field the eye reads the accent as
+ * acid lemon; the fix is to warm the whole neutral ramp so the gold belongs to
+ * it, and to pull the accent itself off yellow toward burnt amber (hue 36°→29°).
+ * The neutrals carry only a few points of R-over-B — enough to read as paper
+ * rather than screen, not enough to look tinted. Less blue light out of a
+ * bright TV panel is also what makes it easier on the eyes in a dim hotel room.
+ *
+ * Every text token here is ≥4.5:1 (WCAG AA) on the surface it sits on
+ * (verified against surface / background / surfaceElevated).
  */
 export const lightColors: ThemeColors = {
-  background: '#f2f3f5',
-  surface: '#ffffff',
-  // Inset wells/chips ON white cards — darker than surface, inverting the dark
+  background: '#f5f2ee',
+  surface: '#fdfbf8', // warm white — a pure-white card next to this reads blue
+  // Inset wells/chips ON the cards — darker than surface, inverting the dark
   // theme's "elevated is lighter" relationship, which is correct for light UI.
-  surfaceElevated: '#eceef1',
+  surfaceElevated: '#efebe5',
   // Slightly darker than a typical web hairline — TV picture processing washes
   // out subtle brightness deltas, so card edges need more presence at 10 feet.
-  border: '#d6dade',
-  primary: '#a16207', // amber-700 — 5.0:1 on white, keeps the gold brand
-  primaryForeground: '#ffffff', // 5.0:1 on primary
-  primaryMuted: '#854d0e',
-  text: '#1b1d22', // ≈16:1
-  textSecondary: '#3f4450', // ≈9:1
-  textTertiary: '#5b616c', // ≈6:1
-  muted: '#778089', // placeholders / disabled — ≈4.2:1
-  danger: '#b91c1c', // red-700 — 5.8:1 even on the page background
-  success: '#15803d', // green-700 — 4.6:1
+  border: '#e0d9d0',
+  primary: '#a1571a', // burnt amber — 5.4:1 on surface, gold without the lemon
+  primaryForeground: '#ffffff', // 5.4:1 on primary
+  primaryMuted: '#7a4413',
+  text: '#221f1b', // ≈16:1
+  textSecondary: '#4a443c', // ≈9:1
+  textTertiary: '#6a6259', // ≈5.8:1
+  muted: '#7c7266', // placeholders / disabled — ≈4.6:1
+  danger: '#b91c1c', // red-700 — 6.3:1
+  success: '#2f7233', // warm-leaning green-700 — 5.7:1
   warning: '#b45309', // amber-700 family
-  info: '#1d4ed8', // blue-700 — 6.3:1
-  focusRing: '#1b1d22',
-  overlay: 'rgba(17,19,24,0.45)',
+  info: '#215fa8', // deeper, less electric blue than blue-700 — 6.2:1
+  focusRing: '#221f1b',
+  overlay: 'rgba(28,22,16,0.5)',
 };

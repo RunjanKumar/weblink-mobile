@@ -7,8 +7,8 @@
   "title": "Weblink",
   "icon": "icon.png",
   "largeIcon": "largeIcon.png",
-  "bgColor": "#f2f3f5",
-  "iconColor": "#facc15",
+  "bgColor": "#373435",
+  "iconColor": "#f1af42",
   "disableBackHistoryAPI": true,
   "supportPortraitMode": false,
   "resolution": "1920x1080"

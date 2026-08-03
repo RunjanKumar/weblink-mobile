@@ -17,16 +17,26 @@
     <application
         android:name=".MainApplication"
         android:label="@string/app_name"
-        android:icon="@drawable/ic_launcher"
-        android:roundIcon="@drawable/ic_launcher"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:banner="@drawable/tv_banner"
         android:allowBackup="false"
         android:theme="@style/AppTheme"
         android:supportsRtl="true">
-        <!-- Icons are XML vector drawables (res/drawable/ic_launcher.xml,
-             tv_banner.xml) so the project builds with NO binary assets — required
-             for cloud CI. Replace tv_banner with a designed 320x180 image before
-             Play submission. -->
+        <!-- The launcher icon is the NexGen Automations mark (the same logo the
+             TV footer carries as "POWERED BY"), generated into res/mipmap-* at
+             all five densities from assests/NEXT GEN LOGO 2.png. It is in mipmap,
+             not drawable, because launchers pull a HIGHER density than the
+             device's own for the icon and only mipmap survives density stripping.
+             The old @drawable/ic_launcher.xml was a placeholder bed motif.
+
+             tv_banner is still an XML vector — replace it with a designed
+             320x180 image before Play submission. -->
+        <!-- Deliberately no mipmap-anydpi-v26 adaptive icon: the mark is a ~3:1
+             wordmark, and an adaptive foreground must survive a circular mask
+             that keeps only the middle 66%, which would clip "NEXGEN" at both
+             ends. A legacy icon gets scaled INTO the mask instead of cropped, so
+             the whole wordmark stays intact. -->
 
         <activity
             android:name=".MainActivity"

@@ -22,7 +22,7 @@ import {
   MMR_RE,
   MakeMyRoomIcon,
   PanelCard,
-  SERIF,
+  DISPLAY,
   SHADOW,
   SceneSquare,
   TvBackdrop,
@@ -347,7 +347,13 @@ export function TvDashboardScreen({navigation}: Props) {
                 justifyContent: 'flex-end',
               }}>
               <Text
-                style={{color: DS.text, fontSize: 30, fontFamily: SERIF, fontStyle: 'italic'}}>
+                style={{
+                  color: DS.text,
+                  fontSize: 30,
+                  fontFamily: DISPLAY,
+                  fontWeight: '300',
+                  letterSpacing: 1.5,
+                }}>
                 {hotelName}
               </Text>
               <Text style={{color: DS.text2, fontSize: 13, marginTop: 6, fontFamily: FONT}}>
