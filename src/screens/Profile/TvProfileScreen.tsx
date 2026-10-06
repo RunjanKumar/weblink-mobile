@@ -15,6 +15,7 @@ import {
   TvScreen,
 } from '../../components/TvGlass';
 import {useAuth} from '../../store/AuthContext';
+import {useTvPresence} from '../../store/TvPresenceContext';
 import {formatDate} from '../../utils';
 import {resolveImageUrl} from '../../utils/imageUrl';
 import {getDisplayName, getHotelAddress} from '../../models/user.model';
@@ -67,6 +68,7 @@ function Avatar({uri, size = 92}: {uri?: string | null; size?: number}) {
 
 export function TvProfileScreen({navigation}: Props) {
   const {user, hotel, session, signOut} = useAuth();
+  const {enabled: isRoomTv} = useTvPresence();
   const rootNavigation = useNavigation();
   const rootNavigate = (name: string, params?: object) =>
     (rootNavigation as unknown as {navigate: (n: string, p?: object) => void}).navigate(
@@ -291,26 +293,41 @@ export function TvProfileScreen({navigation}: Props) {
 
           <View style={{flex: 1}} />
 
-          <Text
-            style={{
-              color: DS.muted,
-              fontSize: 10,
-              lineHeight: 15,
-              marginBottom: 8,
-              fontFamily: FONT,
-            }}>
-            Logging out clears this TV — do it before you check out so the next
-            guest never sees your stay.
-          </Text>
-          {/* Danger reads as a TINT on the glass, not a red slab: a red block
-              this size on the dashboard's palette looks like an error banner. */}
-          <GlassButton
-            label="Log Out"
-            icon="log-out-outline"
-            tone={DS.danger}
-            onPress={confirmLogout}
-            height={44}
-          />
+          {isRoomTv ? (
+            // The in-room TV clears itself at checkout; there is nothing to log out of.
+            <Text
+              style={{
+                color: DS.muted,
+                fontSize: 10,
+                lineHeight: 15,
+                fontFamily: FONT,
+              }}>
+              This TV clears your stay automatically when you check out.
+            </Text>
+          ) : (
+            <>
+              <Text
+                style={{
+                  color: DS.muted,
+                  fontSize: 10,
+                  lineHeight: 15,
+                  marginBottom: 8,
+                  fontFamily: FONT,
+                }}>
+                Logging out clears this TV — do it before you check out so the next
+                guest never sees your stay.
+              </Text>
+              {/* Danger reads as a TINT on the glass, not a red slab: a red block
+                  this size on the dashboard's palette looks like an error banner. */}
+              <GlassButton
+                label="Log Out"
+                icon="log-out-outline"
+                tone={DS.danger}
+                onPress={confirmLogout}
+                height={44}
+              />
+            </>
+          )}
         </GlassPanel>
       </View>
     </TvScreen>

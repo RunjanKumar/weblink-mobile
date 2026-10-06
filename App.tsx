@@ -8,6 +8,7 @@ import { DialogProvider } from './src/components/AppDialog';
 import { ToastHost } from './src/components/Toast';
 import { ThemeProvider, useTheme } from './src/theme';
 import { AuthProvider } from './src/store/AuthContext';
+import { TvPresenceProvider } from './src/store/TvPresenceContext';
 import { SocketProvider } from './src/store/SocketContext';
 import { ServiceRequestProvider } from './src/store/ServiceRequestContext';
 import { FoodOrderProvider } from './src/store/FoodOrderContext';
@@ -25,6 +26,8 @@ import { queryClient } from './src/services/queryClient';
  *   QueryClientProvider     – React Query cache
  *   ThemeProvider           – design tokens (dark by default)
  *   AuthProvider            – session state; drives RootNavigator's auth switch
+ *   TvPresenceProvider      – Samsung in-room TV only: pairing + automatic
+ *                             guest sign-in (a no-op on every other build)
  */
 /** Status bar that follows the active scheme (dark icons on the light theme). */
 function ThemedStatusBar() {
@@ -45,19 +48,21 @@ export default function App() {
           <QueryClientProvider client={queryClient}>
             <ThemeProvider>
               <AuthProvider>
-                <SocketProvider>
-                  <ServiceRequestProvider>
-                    <FoodOrderProvider>
-                      <LaundryBasketProvider>
-                        <DialogProvider>
-                          <ThemedStatusBar />
-                          <RootNavigator />
-                          <ToastHost />
-                        </DialogProvider>
-                      </LaundryBasketProvider>
-                    </FoodOrderProvider>
-                  </ServiceRequestProvider>
-                </SocketProvider>
+                <TvPresenceProvider>
+                  <SocketProvider>
+                    <ServiceRequestProvider>
+                      <FoodOrderProvider>
+                        <LaundryBasketProvider>
+                          <DialogProvider>
+                            <ThemedStatusBar />
+                            <RootNavigator />
+                            <ToastHost />
+                          </DialogProvider>
+                        </LaundryBasketProvider>
+                      </FoodOrderProvider>
+                    </ServiceRequestProvider>
+                  </SocketProvider>
+                </TvPresenceProvider>
               </AuthProvider>
             </ThemeProvider>
           </QueryClientProvider>

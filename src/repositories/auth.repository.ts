@@ -130,8 +130,45 @@ export const authRepository = {
     }
   },
 
+  /**
+   * Sign in with a token someone else issued — the in-room TV gets the checked-
+   * in guest's token from the backend (`/v1/tv/state`). Unlike restoreSession
+   * there is no cached fallback: if the profile cannot be loaded the token is
+   * dropped and the caller retries on its next state check.
+   */
+  async loginWithToken(token: string): Promise<Session> {
+    await tokenStorage.set(token);
+    try {
+      const res = await customerApi.getProfile();
+      const profile = res.data;
+      if (!profile?.user) {
+        throw new Error(res.message || 'Profile unavailable');
+      }
+      const session: Session = {
+        token,
+        user: profile.user,
+        hotel: profile.hotelData ?? null,
+        booking: profile.bookRoomData?.[0] ?? null,
+      };
+      cacheSession(session);
+      return session;
+    } catch (error) {
+      await tokenStorage.clear();
+      throw error;
+    }
+  },
+
   async logout(): Promise<void> {
     await authApi.logout(); // best-effort (never throws)
+    await authRepository.clearLocal();
+  },
+
+  /**
+   * Forget the session on this device only — no logout call. Used on the
+   * in-room TV, where the backend owns the session: calling logout would end
+   * the guest's other sessions too.
+   */
+  async clearLocal(): Promise<void> {
     await tokenStorage.clear();
     storage.remove(STORAGE_KEYS.SESSION);
   },

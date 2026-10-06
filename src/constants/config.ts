@@ -59,3 +59,6 @@ export const config = {
 } as const;
 
 export type AppConfig = typeof config;
+
+/** Shown on the TV Settings page and reported to the backend by in-room TVs. */
+export const APP_VERSION = '0.1.0';

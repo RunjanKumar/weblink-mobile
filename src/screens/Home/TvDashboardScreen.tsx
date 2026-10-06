@@ -37,6 +37,7 @@ import {
 import {useDashboardViewModel, useRoomControl} from '../../viewmodels';
 import {CurtainControl} from './components/CurtainControl';
 import {useAuth} from '../../store/AuthContext';
+import {useTvPresence} from '../../store/TvPresenceContext';
 import {getApiErrorMessage} from '../../utils/errorHandler';
 import type {RoomDevice} from '../../models/device.model';
 import type {HomeStackParamList} from '../../navigation/types';
@@ -236,6 +237,8 @@ function SceneSwitch({
  */
 export function TvDashboardScreen({navigation}: Props) {
   const {signOut} = useAuth();
+  // Samsung in-room TV: check-in/checkout sign the guest in and out, so no Log out.
+  const {enabled: isRoomTv} = useTvPresence();
   const dash = useDashboardViewModel();
   const room = useRoomControl();
   // Door is a local placeholder, exactly like the phone dashboard's DoorControlCard.
@@ -267,7 +270,7 @@ export function TvDashboardScreen({navigation}: Props) {
       dismissValue: 'cancel',
       actions: [
         {label: 'Cancel', value: 'cancel', variant: 'secondary'},
-        {label: 'Log out', value: 'logout', variant: 'danger'},
+        ...(isRoomTv ? [] : [{label: 'Log out', value: 'logout', variant: 'danger' as const}]),
         {label: 'Refresh', value: 'refresh', variant: 'secondary'},
         {label: 'Settings', value: 'settings', variant: 'secondary'},
         {label: 'Profile', value: 'profile', variant: 'secondary'},

@@ -16,14 +16,13 @@ import {
 } from '../../components/TvGlass';
 import {useAuth} from '../../store/AuthContext';
 import {useTheme} from '../../theme';
-import {config} from '../../constants/config';
+import {APP_VERSION, config} from '../../constants/config';
 import {getDisplayName} from '../../models/user.model';
 import type {HomeStackParamList} from '../../navigation/types';
 import {getDiagnostics, platform, platformLabel, type TvDiagnostics} from '../../services/tvPlatform';
+import {useTvPresence} from '../../store/TvPresenceContext';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'Settings'>;
-
-const APP_VERSION = '0.1.0';
 
 /** Apps worth surfacing by ID — the ones the hotel tiles will launch. */
 const KEY_APPS = /netflix|youtube|prime|disney|hotstar|jio|zee5|sonyliv|apple|spotify/i;
@@ -37,6 +36,7 @@ const Divider = () => <View style={{height: 1, backgroundColor: DS.divider}} />;
  */
 function DeviceInfo() {
   const [diag, setDiag] = useState<TvDiagnostics | null>(null);
+  const {enabled: isRoomTv, roomNumber} = useTvPresence();
 
   useEffect(() => {
     let alive = true;
@@ -55,6 +55,16 @@ function DeviceInfo() {
 
   return (
     <>
+      {isRoomTv ? (
+        <>
+          <MetaRow
+            icon="bed-outline"
+            label="Paired to"
+            value={roomNumber ? `Room ${roomNumber}` : undefined}
+          />
+          <Divider />
+        </>
+      ) : null}
       <MetaRow
         icon="finger-print-outline"
         label="Device ID (DUID)"
@@ -126,6 +136,8 @@ function DeviceInfo() {
 export function TvSettingsScreen({navigation}: Props) {
   const {scheme, toggleScheme} = useTheme();
   const {user, hotel, session, signOut} = useAuth();
+  // On a Samsung in-room TV the stay itself signs the guest in and out.
+  const {enabled: isRoomTv} = useTvPresence();
   const rootNavigation = useNavigation();
   const dark = scheme === 'dark';
   const [showDevice, setShowDevice] = useState(false);
@@ -362,13 +374,15 @@ export function TvSettingsScreen({navigation}: Props) {
 
           <View style={{flex: 1}} />
 
-          <GlassButton
-            label="Log Out"
-            icon="log-out-outline"
-            tone={DS.danger}
-            onPress={confirmLogout}
-            height={44}
-          />
+          {isRoomTv ? null : (
+            <GlassButton
+              label="Log Out"
+              icon="log-out-outline"
+              tone={DS.danger}
+              onPress={confirmLogout}
+              height={44}
+            />
+          )}
         </GlassPanel>
       </View>
     </TvScreen>

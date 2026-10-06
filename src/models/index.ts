@@ -38,6 +38,7 @@ export type {
   FacilityReservationPayload,
 } from './facility.model';
 export type {RawChatMessage, ChatMessage} from './chat.model';
+export type {TvPairingStart, TvPairingStatus, TvState} from './tv.model';
 export type {
   FoodCouponData,
   AddOn,

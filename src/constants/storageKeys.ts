@@ -14,6 +14,11 @@ export const STORAGE_KEYS = {
   THEME_SCHEME: 'settings.themeScheme',
   REMEMBERED_EMAIL: 'settings.rememberedEmail',
   FOOD_CART: 'cache.foodCart',
+  /**
+   * Samsung in-room TV only: the device token from pairing. It identifies the
+   * ROOM, not a guest, so it must survive app restarts and guest changes.
+   */
+  TV_DEVICE_TOKEN: 'tv.deviceToken',
 } as const;
 
 // Keychain service identifier for the auth token.

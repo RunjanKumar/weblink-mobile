@@ -9,6 +9,7 @@ import React, {
 import {authRepository} from '../repositories/auth.repository';
 import {authEvents} from '../services/authEvents';
 import {logger} from '../services/logger';
+import {queryClient} from '../services/queryClient';
 import type {AuthStatus, LoginRequest, Session} from '../models/auth.model';
 import type {CustomerUser, Hotel} from '../models/user.model';
 
@@ -19,7 +20,11 @@ interface AuthContextValue {
   hotel: Hotel | null;
   isAuthenticated: boolean;
   signIn: (payload: LoginRequest) => Promise<Session>;
+  /** In-room TV: sign in with the guest token the backend handed the TV. */
+  signInWithToken: (token: string) => Promise<Session>;
   signOut: () => Promise<void>;
+  /** In-room TV: forget the guest on this device only (no logout call). */
+  resetLocal: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -50,8 +55,11 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
   }, []);
 
   // ── React to 401s bubbled from the api layer ──
+  // Cached queries belong to the guest who just lost their session; drop them
+  // so the next guest (on a shared TV) never sees them.
   useEffect(() => {
     return authEvents.onUnauthorized(() => {
+      queryClient.clear();
       setSession(null);
       setStatus('unauthenticated');
     });
@@ -64,12 +72,27 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
     return next;
   }, []);
 
+  const signInWithToken = useCallback(async (token: string) => {
+    const next = await authRepository.loginWithToken(token);
+    setSession(next);
+    setStatus('authenticated');
+    return next;
+  }, []);
+
   const signOut = useCallback(async () => {
     try {
       await authRepository.logout();
     } catch (error) {
       logger.warn('auth', 'Sign-out error (ignored)', error);
     }
+    queryClient.clear();
+    setSession(null);
+    setStatus('unauthenticated');
+  }, []);
+
+  const resetLocal = useCallback(async () => {
+    await authRepository.clearLocal();
+    queryClient.clear();
     setSession(null);
     setStatus('unauthenticated');
   }, []);
@@ -82,9 +105,11 @@ export function AuthProvider({children}: {children: React.ReactNode}) {
       hotel: session?.hotel ?? null,
       isAuthenticated: status === 'authenticated',
       signIn,
+      signInWithToken,
       signOut,
+      resetLocal,
     }),
-    [status, session, signIn, signOut],
+    [status, session, signIn, signInWithToken, signOut, resetLocal],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

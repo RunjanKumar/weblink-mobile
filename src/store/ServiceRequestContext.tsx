@@ -1,5 +1,6 @@
-import React, {createContext, useCallback, useContext, useMemo, useState} from 'react';
+import React, {createContext, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import type {GroupedServiceCategory, ServiceCategory} from '../models/service.model';
+import {useAuth} from './AuthContext';
 
 interface ServiceRequestValue {
   /** Set of currently-requested subcategory ids. */
@@ -71,6 +72,15 @@ export function ServiceRequestProvider({children}: {children: React.ReactNode}) 
     setRequested(new Set());
     setDetails({});
   }, []);
+
+  // A signed-out (or next) guest must never inherit a half-built request —
+  // same rule as the food cart and laundry basket.
+  const {status: authStatus} = useAuth();
+  useEffect(() => {
+    if (authStatus === 'unauthenticated') {
+      clearAll();
+    }
+  }, [authStatus, clearAll]);
 
   const value = useMemo<ServiceRequestValue>(
     () => ({

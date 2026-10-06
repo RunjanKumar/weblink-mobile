@@ -35,6 +35,11 @@ export const ENDPOINTS = {
   LAUNDRY_RATE_LIST: '/v1/laundry/guest/rate-list',
   LAUNDRY_ORDER: '/v1/laundry/guest/order',
   FOLIO_GUEST: '/v1/folio/guest',
+
+  // ── In-room TV (Samsung) ──
+  TV_PAIR_START: '/v1/tv/pair/start',
+  TV_PAIR_STATUS: '/v1/tv/pair/status',
+  TV_STATE: '/v1/tv/state',
 } as const;
 
 export type EndpointKey = keyof typeof ENDPOINTS;
