@@ -37,6 +37,10 @@ android/app/src/main/res/raw/
 web-build/
 dist-webos/
 
+# Samsung Tizen build output (regenerate with `npm run wgt`)
+web-build-tizen/
+dist-tizen/
+
 # Env — do not commit real secrets
 .env
 

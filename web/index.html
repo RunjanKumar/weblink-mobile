@@ -32,7 +32,7 @@
           spec families first.
         */
         font-family: 'SF Pro Display', 'SF Pro Text', Inter, 'Helvetica Neue', 'Segoe UI', Roboto,
-          'LG Smart UI', 'Museo Sans', Arial, sans-serif;
+          'LG Smart UI', 'Museo Sans', SamsungOne, Arial, sans-serif;
       }
       #root {
         display: flex;
@@ -68,6 +68,15 @@
         }
       }
     </style>
+    <% if (tvTarget === 'tizen') { %>
+    <!--
+      Samsung's product API (`webapis`: DUID, ...). $WEBAPIS is resolved by the
+      TV's web runtime; it exists only on a Samsung TV / emulator, so the webOS
+      build never includes this tag. Loaded before the bundle (which is injected
+      at the end of <body>) so the global is ready when the app starts.
+    -->
+    <script src="$WEBAPIS/webapis/webapis.js"></script>
+    <% } %>
   </head>
   <body>
     <div id="root"></div>

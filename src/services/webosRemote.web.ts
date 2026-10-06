@@ -1,27 +1,34 @@
 /**
- * LG webOS remote-control support (web build only).
+ * TV remote-control support for the web builds: LG webOS and Samsung Tizen.
  *
  * Android TV gives D-pad focus movement for free — the platform walks the view
- * tree. A browser does not: webOS delivers the remote's arrow keys as plain
- * keydown events and nothing moves focus. This module supplies the missing
- * piece, so the `focusable` + `useTVFocus` rings the screens already use behave
- * the same on both platforms.
+ * tree. A browser does not: webOS and Tizen deliver the remote's arrow keys as
+ * plain keydown events and nothing moves focus. This module supplies the
+ * missing piece, so the `focusable` + `useTVFocus` rings the screens already
+ * use behave the same on every platform.
  *
  * Handled keys:
  *   37/38/39/40  arrows  -> spatial focus move
  *   13           OK      -> left to the browser (activates the focused element)
- *   461          Back    -> pop one screen; falls through to close the app
+ *   461 / 10009  Back    -> pop one screen. At the root: webOS closes the app;
+ *                           Tizen swallows it (see the keydown handler).
+ *
+ * Arrows, OK and Back reach a Tizen web app without `tvinputdevice.registerKey`;
+ * only media / colour keys need registering.
  *
  * Call `installWebOSRemote()` once at startup; it is a no-op off the web.
  */
 import {goBackIfPossible, navigationRef} from '../navigation/navigationRef';
+import {IS_TIZEN} from '../utils/responsive';
 import {closeTopModal, topModalRootId} from './modalRegistry';
 const KEY_LEFT = 37;
 const KEY_UP = 38;
 const KEY_RIGHT = 39;
 const KEY_DOWN = 40;
 /** webOS remote's Back button. Not a standard DOM keycode. */
-const KEY_BACK = 461;
+const KEY_BACK_WEBOS = 461;
+/** Samsung Tizen remote's Back button ("Return"). */
+const KEY_BACK_TIZEN = 10009;
 
 type Direction = 'left' | 'up' | 'right' | 'down';
 
@@ -207,13 +214,16 @@ export function installWebOSRemote(): void {
   document.addEventListener(
     'keydown',
     event => {
-      if (event.keyCode === KEY_BACK) {
+      if (event.keyCode === KEY_BACK_WEBOS || event.keyCode === KEY_BACK_TIZEN) {
         // Priority 1: close the top-most open modal (dialog / payment sheet).
         // Priority 2: pop the navigator (React Navigation is not wired to
         // browser history — history.back() would exit the app from anywhere).
-        // At the root with nothing open, let the press through: webOS closes
-        // the app, which is what LG expects from Back.
-        if (closeTopModal() || goBackIfPossible()) {
+        // At the root with nothing open:
+        //  - webOS: let the press through; webOS closes the app, which is what
+        //    LG expects from Back.
+        //  - Tizen: swallow it. In a hotel the app IS the TV's home screen, so
+        //    Back at the root must not leave it.
+        if (closeTopModal() || goBackIfPossible() || IS_TIZEN) {
           event.preventDefault();
         }
       }

@@ -1,5 +1,13 @@
 export {getApiErrorMessage, isNetworkError} from './errorHandler';
-export {getDeviceType, scale, moderateScale, IS_TV, IS_WEB_BUILD} from './responsive';
+export {
+  getDeviceType,
+  scale,
+  moderateScale,
+  IS_TV,
+  IS_WEB_BUILD,
+  IS_WEBOS,
+  IS_TIZEN,
+} from './responsive';
 export type {DeviceType} from './responsive';
 export {
   formatTime12h,

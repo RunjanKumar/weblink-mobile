@@ -1,5 +1,5 @@
-import React from 'react';
-import {Platform, ScrollView, Text, View} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {ScrollView, Text, View} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
@@ -17,13 +17,102 @@ import {
 import {useAuth} from '../../store/AuthContext';
 import {useTheme} from '../../theme';
 import {config} from '../../constants/config';
-import {IS_WEB_BUILD} from '../../utils';
 import {getDisplayName} from '../../models/user.model';
 import type {HomeStackParamList} from '../../navigation/types';
+import {getDiagnostics, platform, platformLabel, type TvDiagnostics} from '../../services/tvPlatform';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'Settings'>;
 
 const APP_VERSION = '0.1.0';
+
+/** Apps worth surfacing by ID — the ones the hotel tiles will launch. */
+const KEY_APPS = /netflix|youtube|prime|disney|hotstar|jio|zee5|sonyliv|apple|spotify/i;
+
+const Divider = () => <View style={{height: 1, backgroundColor: DS.divider}} />;
+
+/**
+ * What the TV itself reports: DUID, screen, server reachability and, on
+ * Samsung, the installed apps and video inputs. This is how the feasibility
+ * tests read a hotel TV (or a Remote Test Lab TV) without a debugger.
+ */
+function DeviceInfo() {
+  const [diag, setDiag] = useState<TvDiagnostics | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void getDiagnostics().then(d => alive && setDiag(d));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!diag) {
+    return <MetaRow icon="hourglass-outline" label="Reading this TV" value="Checking…" />;
+  }
+
+  const reach = (ok: boolean) => (ok ? 'Reachable' : 'Not reachable');
+  const keyApps = diag.apps.ok ? diag.apps.value.filter(a => KEY_APPS.test(a.name)) : [];
+
+  return (
+    <>
+      <MetaRow
+        icon="finger-print-outline"
+        label="Device ID (DUID)"
+        value={diag.deviceId.ok ? diag.deviceId.value : `Unavailable: ${diag.deviceId.error}`}
+      />
+      <Divider />
+      <MetaRow icon="resize-outline" label="Screen" value={diag.screen} />
+      <Divider />
+      <MetaRow
+        icon="server-outline"
+        label="Hotel server"
+        value={reach(diag.apiReachable)}
+        valueColor={diag.apiReachable ? DS.good : DS.danger}
+      />
+      <Divider />
+      <MetaRow
+        icon="pulse-outline"
+        label="Live updates"
+        value={reach(diag.socketReachable)}
+        valueColor={diag.socketReachable ? DS.good : DS.danger}
+      />
+      {platform() === 'tizen' ? (
+        <>
+          <Divider />
+          <MetaRow
+            icon="git-network-outline"
+            label="Video inputs"
+            value={
+              diag.videoSources.ok ? diag.videoSources.value.join(', ') : diag.videoSources.error
+            }
+          />
+          <Divider />
+          <MetaRow
+            icon="apps-outline"
+            label="Installed apps"
+            value={diag.apps.ok ? `${diag.apps.value.length} apps` : diag.apps.error}
+          />
+          {keyApps.map(app => (
+            <React.Fragment key={app.id}>
+              <Divider />
+              <MetaRow icon="play-circle-outline" label={app.name} value={app.id} />
+            </React.Fragment>
+          ))}
+        </>
+      ) : null}
+      <Text
+        style={{
+          color: DS.muted,
+          fontSize: 9,
+          lineHeight: 13,
+          marginTop: 12,
+          fontFamily: FONT,
+        }}>
+        {diag.userAgent}
+      </Text>
+    </>
+  );
+}
 
 /**
  * Settings (TV) — the ⋮ menu's Settings page in the dashboard's glass.
@@ -39,6 +128,7 @@ export function TvSettingsScreen({navigation}: Props) {
   const {user, hotel, session, signOut} = useAuth();
   const rootNavigation = useNavigation();
   const dark = scheme === 'dark';
+  const [showDevice, setShowDevice] = useState(false);
 
   const confirmLogout = async () => {
     const confirmed = await dialog.confirm({
@@ -165,51 +255,56 @@ export function TvSettingsScreen({navigation}: Props) {
               marginBottom: 10,
               fontFamily: FONT,
             }}>
-            ABOUT
+            {showDevice ? 'DEVICE' : 'ABOUT'}
           </Text>
 
-          <ScrollView style={{flex: 1}} showsVerticalScrollIndicator={false}>
-            <MetaRow icon="tv-outline" label="App" value="Weblink In-Room TV" />
-            <View style={{height: 1, backgroundColor: DS.divider}} />
-            <MetaRow icon="pricetag-outline" label="Version" value={`v${APP_VERSION}`} />
-            <View style={{height: 1, backgroundColor: DS.divider}} />
-            <MetaRow icon="cube-outline" label="Environment" value={config.appEnv} />
-            <View style={{height: 1, backgroundColor: DS.divider}} />
-            <MetaRow
-              icon="hardware-chip-outline"
-              label="Platform"
-              value={IS_WEB_BUILD ? 'LG webOS' : `React Native (${Platform.OS})`}
-            />
+          {/* Plain text cannot take remote focus, so a long list would never
+              scroll — the device details swap in for ABOUT instead of stacking
+              under it. */}
+          {showDevice ? (
+            <ScrollView style={{flex: 1}} showsVerticalScrollIndicator={false}>
+              <DeviceInfo />
+            </ScrollView>
+          ) : (
+            <ScrollView style={{flex: 1}} showsVerticalScrollIndicator={false}>
+              <MetaRow icon="tv-outline" label="App" value="Weblink In-Room TV" />
+              <View style={{height: 1, backgroundColor: DS.divider}} />
+              <MetaRow icon="pricetag-outline" label="Version" value={`v${APP_VERSION}`} />
+              <View style={{height: 1, backgroundColor: DS.divider}} />
+              <MetaRow icon="cube-outline" label="Environment" value={config.appEnv} />
+              <View style={{height: 1, backgroundColor: DS.divider}} />
+              <MetaRow icon="hardware-chip-outline" label="Platform" value={platformLabel()} />
 
-            {/* Near-white, not muted — see the note in TvProfileScreen. */}
-            <Text
-              style={{
-                color: DS.text2,
-                fontSize: 10,
-                fontWeight: '700',
-                letterSpacing: 1,
-                marginTop: 20,
-                marginBottom: 4,
-                fontFamily: FONT,
-              }}>
-              SIGNED IN
-            </Text>
-            <MetaRow icon="person-outline" label="Guest" value={getDisplayName(user)} />
-            <View style={{height: 1, backgroundColor: DS.divider}} />
-            <MetaRow icon="mail-outline" label="Email" value={user?.email} />
-            <View style={{height: 1, backgroundColor: DS.divider}} />
-            <MetaRow icon="business-outline" label="Hotel" value={hotel?.name} />
-            <View style={{height: 1, backgroundColor: DS.divider}} />
-            <MetaRow
-              icon="bed-outline"
-              label="Room"
-              value={
-                session?.booking?.roomData?.roomNumber != null
-                  ? String(session.booking.roomData.roomNumber)
-                  : undefined
-              }
-            />
-          </ScrollView>
+              {/* Near-white, not muted — see the note in TvProfileScreen. */}
+              <Text
+                style={{
+                  color: DS.text2,
+                  fontSize: 10,
+                  fontWeight: '700',
+                  letterSpacing: 1,
+                  marginTop: 20,
+                  marginBottom: 4,
+                  fontFamily: FONT,
+                }}>
+                SIGNED IN
+              </Text>
+              <MetaRow icon="person-outline" label="Guest" value={getDisplayName(user)} />
+              <View style={{height: 1, backgroundColor: DS.divider}} />
+              <MetaRow icon="mail-outline" label="Email" value={user?.email} />
+              <View style={{height: 1, backgroundColor: DS.divider}} />
+              <MetaRow icon="business-outline" label="Hotel" value={hotel?.name} />
+              <View style={{height: 1, backgroundColor: DS.divider}} />
+              <MetaRow
+                icon="bed-outline"
+                label="Room"
+                value={
+                  session?.booking?.roomData?.roomNumber != null
+                    ? String(session.booking.roomData.roomNumber)
+                    : undefined
+                }
+              />
+            </ScrollView>
+          )}
         </GlassPanel>
 
         {/* ── Right: where to go from here ── */}
@@ -255,6 +350,13 @@ export function TvSettingsScreen({navigation}: Props) {
                 'ReceptionTab',
               )
             }
+            height={44}
+            style={{marginBottom: 8}}
+          />
+          <GlassButton
+            label={showDevice ? 'About This App' : 'Device Info'}
+            icon={showDevice ? 'information-circle-outline' : 'hardware-chip-outline'}
+            onPress={() => setShowDevice(v => !v)}
             height={44}
           />
 

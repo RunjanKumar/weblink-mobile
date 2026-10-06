@@ -105,7 +105,8 @@ export const GLASS_BLUR =
  * The tail of the chain is what actually renders in the .ipk. webOS has none of
  * the design-spec families (no SF Pro, no Inter, no Segoe UI, no Roboto), so on
  * the TV every one of those misses and the pick lands on LG's own UI sans:
- * 'LG Smart UI' on webOS 4+, 'Museo Sans' on the older sets. Naming them here
+ * 'LG Smart UI' on webOS 4+, 'Museo Sans' on the older sets. Samsung Tizen
+ * misses those too and lands on its own SamsungOne. Naming them here
  * rather than leaning on the generic `sans-serif` keyword means the TV resolves
  * to a known humanist sans instead of whatever the UA has that keyword aliased
  * to on that firmware. Desktop dev is unaffected — SF Pro / Segoe UI still hit
@@ -113,7 +114,7 @@ export const GLASS_BLUR =
  */
 const SANS =
   "'SF Pro Display', 'SF Pro Text', Inter, 'Helvetica Neue', 'Segoe UI', Roboto, " +
-  "'LG Smart UI', 'Museo Sans', Arial, sans-serif";
+  "'LG Smart UI', 'Museo Sans', SamsungOne, Arial, sans-serif";
 
 export const FONT = Platform.OS === 'web' ? SANS : undefined;
 

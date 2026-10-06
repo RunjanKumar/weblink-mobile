@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Samsung Tizen TV app manifest — the .wgt counterpart of webos/appinfo.json.
+  `npm run wgt` (scripts/build-wgt.mjs) copies this next to the bundle.
+
+  - Package ID "WattNexgen" is a placeholder for development. If Samsung's
+    Seller Office assigns a different one at registration, change it here and
+    in tizen:application id together.
+  - required_version 6.5: the hotel TVs run Tizen 9, but 6.5 lets the older
+    Remote Test Lab TVs install the same build. Hotel-TV auto-launch needs 6.5+.
+  - The <access> list is generated from .env at build time (the API, socket and
+    image hosts change per environment), replacing the marker below. Never use
+    origin="*": it would let the TV talk to any host.
+-->
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets"
+        id="https://wattinventive.com/nexgen-tv" version="1.0.0" viewmodes="maximized">
+    <tizen:application id="WattNexgen.NexgenHotels" package="WattNexgen" required_version="6.5"/>
+    <tizen:profile name="tv-samsung"/>
+    <name>Nexgen Hotels</name>
+    <icon src="icon.png"/>
+    <content src="index.html"/>
+    <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
+    <tizen:metadata key="http://tizen.org/metadata/app_ui_type/base_screen_resolution" value="extensive"/>
+
+    <!-- Network access (fetch / XHR / socket.io). -->
+    <tizen:privilege name="http://tizen.org/privilege/internet"/>
+    <!-- Remote keys beyond arrows / OK / Back (media, colour keys) — Phase 2. -->
+    <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+    <!-- Installed-app list (real Netflix / YouTube IDs) and launching them. -->
+    <tizen:privilege name="http://tizen.org/privilege/application.info"/>
+    <tizen:privilege name="http://tizen.org/privilege/application.launch"/>
+    <!-- Showing an HDMI input (Live TV from the room's set-top box). -->
+    <tizen:privilege name="http://tizen.org/privilege/tv.window"/>
+    <!-- DUID: identifies this TV when pairing it to a room. -->
+    <tizen:privilege name="http://developer.samsung.com/privilege/productinfo"/>
+
+    <!-- @access-origins -->
+
+    <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable"
+                   encryption="disable" install-location="auto" hwkey-event="enable"/>
+</widget>

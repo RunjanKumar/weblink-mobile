@@ -12,11 +12,25 @@ function isWebOS(): boolean {
   return /web0s|webos/i.test(navigator.userAgent);
 }
 
-/** True on Android TV / tvOS / LG webOS. Cheap constant for TV-only branches. */
-export const IS_TV: boolean = Platform.isTV === true || isWebOS();
+/**
+ * True on Samsung Tizen TVs. Their UA reads "(SMART-TV; LINUX; Tizen 9.0)".
+ * Matches "Tizen" only — "SmartTV"-style tokens also appear in other brands' UAs.
+ */
+function isTizen(): boolean {
+  if (Platform.OS !== 'web' || typeof navigator === 'undefined') {
+    return false;
+  }
+  return /tizen/i.test(navigator.userAgent);
+}
+
+export const IS_WEBOS: boolean = isWebOS();
+export const IS_TIZEN: boolean = isTizen();
+
+/** True on Android TV / tvOS / LG webOS / Samsung Tizen. Cheap constant for TV-only branches. */
+export const IS_TV: boolean = Platform.isTV === true || IS_WEBOS || IS_TIZEN;
 
 /**
- * True in the web (.ipk / webOS) build, false in every Android .apk.
+ * True in the web (.ipk / webOS, .wgt / Tizen) build, false in every Android .apk.
  *
  * Distinct from IS_TV on purpose: IS_TV is also true for an Android TV APK, so
  * it cannot express "the TV app follows a different flow than the phone app".

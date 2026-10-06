@@ -1,10 +1,15 @@
 /* eslint-disable */
 /**
- * Web / LG webOS bundle.
+ * Web / LG webOS / Samsung Tizen bundle.
  *
- * Produces the plain static site that `ares-package` turns into an .ipk. The
- * output must be fully relative (`publicPath: ''`) because webOS serves the app
- * from a file path, not a web root — absolute `/bundle.js` would 404 on the TV.
+ * Produces the plain static site that `ares-package` turns into an .ipk, or —
+ * with `--env target=tizen` — that `tizen package` turns into a .wgt. The
+ * output must be fully relative (`publicPath: ''`) because both TVs serve the
+ * app from a file path, not a web root — absolute `/bundle.js` would 404.
+ *
+ * The two TV targets share one bundle shape; they differ only in the output
+ * folder (so one build never wipes the other) and in index.html, where the
+ * Tizen build loads Samsung's `webapis.js`.
  *
  * Three things make an RN codebase build here:
  *  1. `react-native` is aliased to `react-native-web`.
@@ -33,14 +38,17 @@ const transpileModules = [
   '@react-native-community',
 ];
 
-module.exports = (_env, argv = {}) => {
+module.exports = (env = {}, argv = {}) => {
   const isProduction = argv.mode === 'production';
+  // `webos` (default — `npm run ipk` and `npm run web` are unchanged) or `tizen`.
+  const tvTarget = env.target === 'tizen' ? 'tizen' : 'webos';
+  const outputDir = path.resolve(__dirname, tvTarget === 'tizen' ? 'web-build-tizen' : 'web-build');
 
   return {
     mode: isProduction ? 'production' : 'development',
     entry: path.resolve(__dirname, 'index.web.js'),
     output: {
-      path: path.resolve(__dirname, 'web-build'),
+      path: outputDir,
       filename: isProduction ? 'static/[name].[contenthash:8].js' : 'static/[name].js',
       // Relative — webOS loads index.html off the filesystem.
       publicPath: '',
@@ -188,6 +196,7 @@ module.exports = (_env, argv = {}) => {
       new HtmlWebpackPlugin({
         template: path.resolve(__dirname, 'web/index.html'),
         inject: 'body',
+        templateParameters: {tvTarget},
       }),
       new (require('webpack').DefinePlugin)({
         // react-native's source branches on these.
@@ -196,7 +205,7 @@ module.exports = (_env, argv = {}) => {
       }),
     ],
     devServer: {
-      static: {directory: path.resolve(__dirname, 'web-build')},
+      static: {directory: outputDir},
       port: 8082,
       historyApiFallback: true,
       hot: true,
