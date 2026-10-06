@@ -93,11 +93,45 @@ The full dump is logged as `[tvPlatform] diagnostics`.
 
 Code: `src/services/tvPlatform.web.ts` (web) / `tvPlatform.ts` (native stub).
 
+## No login on the TV: pairing + automatic guest sign-in
+
+On the Samsung build the Login screen never appears. Logic lives in
+`src/store/TvPresenceContext.tsx`; the screens are in `src/screens/Tv/TvGateScreen.tsx`.
+
+1. **First start.** The TV calls `POST /v1/tv/pair/start` and shows a 6-digit
+   code.
+2. **Staff pair it.** In the admin panel: TV Devices → Pair TV → enter the
+   code and choose the room.
+3. **The TV gets its device token.** It polls `GET /v1/tv/pair/status`, receives
+   the token once, and keeps it in `localStorage` as `weblink-app:tv.deviceToken`.
+4. **Every check after that.** The TV calls `GET /v1/tv/state` with the
+   `x-tv-token` header:
+   - Room empty → `idle`, and the TV shows the Welcome screen (hotel + room).
+   - Guest checked in → the backend hands over that guest's normal session
+     token, and the TV signs in with it.
+5. **When the TV checks again:**
+   - socket `tv:refresh`, sent by the backend on check-in, checkout and room move
+     (the TV connects to the API host with `query.tvToken`)
+   - every 60 s
+   - when the app comes back to the foreground
+   - after any 401
+6. **Checkout.** The backend deletes the guest session and the TV returns to
+   Welcome. Its local data is cleared: token, React Query cache, carts.
+7. **Unpair.** Unpairing in the admin panel, or a 401 on the device token,
+   sends the TV back to the pairing code.
+
+There is no Log Out on the TV, since check-in and checkout handle sign-in and
+sign-out. A guest logging out on their phone does not affect the TV.
+
+**Testing without a deployed backend.** Run the backend locally and build the
+TV against `API_BASE_URL=http://10.0.2.2:<port>`. That is the laptop as seen
+from the Tizen emulator, and the build script adds it to `<access>`. Restore
+`.env` afterwards and clear `node_modules/.cache/babel-loader`, because
+`.env` values are inlined at build time.
+
 ## Not yet done (later phases)
 
 - Netflix / YouTube tiles → `launchApp(id)`; Live TV → `showHdmi(port)`.
   Both functions exist but nothing calls them yet.
-- TV-to-room pairing and auto guest login. The token is still in
-  `sessionStorage`, so a guest signs in again after the TV restarts.
 - Package ID `WattNexgen` is a placeholder until Samsung Seller Office
   registration.
