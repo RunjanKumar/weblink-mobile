@@ -229,7 +229,7 @@ function SceneSwitch({
  * system (Vision-Pro glassmorphism, warm beige + champagne gold). Tokens and the
  * glass primitives live in `components/TvGlass`, shared with Light Control.
  *
- * Feature status: View Bill and Help Desk are real; Netflix / Google Cast /
+ * Feature status: View Bill, Help Desk and My Day (where offered) are real; Netflix / Google Cast /
  * Explore Hotel / Live TV are "coming soon" toasts; DND & MMR are real scenes
  * split by name; Curtain Control drives the real motor channels when the room
  * has them and falls back to local state when it does not; Light Scenes fall
@@ -455,14 +455,26 @@ export function TvDashboardScreen({navigation}: Props) {
               icon="headset-outline"
               onPress={() => rootNavigate('ReceptionTab')}
             />
-            <Tile
-              title="Live TV"
-              subtitle="Watch your favourite"
-              image={toSource(livetvImg)}
-              icon="tv-outline"
-              soon
-              onPress={comingSoon}
-            />
+            {/* The grid is a fixed 4 × 2, so at a hotel that offers My Day
+                (Dincharya — the Clinical module) it takes the slot of the
+                Live TV placeholder, which is only a coming-soon toast. */}
+            {dash.showMyDay ? (
+              <Tile
+                title="My Day"
+                subtitle="Your wellness rhythm"
+                icon="sunny-outline"
+                onPress={() => navigation.navigate('MyDay')}
+              />
+            ) : (
+              <Tile
+                title="Live TV"
+                subtitle="Watch your favourite"
+                image={toSource(livetvImg)}
+                icon="tv-outline"
+                soon
+                onPress={comingSoon}
+              />
+            )}
           </View>
         </View>
 

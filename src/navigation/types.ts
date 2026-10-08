@@ -50,6 +50,8 @@ export type HomeStackParamList = {
   Profile: undefined;
   Settings: undefined;
   ViewBill: undefined;
+  /** The guest's Dincharya — only reachable where the hotel offers it. */
+  MyDay: undefined;
 };
 
 /**

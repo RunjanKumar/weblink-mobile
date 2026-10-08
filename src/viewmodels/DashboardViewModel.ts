@@ -7,6 +7,7 @@ import {REDIRECT_TYPES} from '../constants/roomControl';
 import {getApiErrorMessage} from '../utils/errorHandler';
 import {IS_WEB_BUILD} from '../utils/responsive';
 import {logger} from '../services/logger';
+import {isPortalModuleEnabled} from '../models/user.model';
 import type {QuickCall} from '../models/device.model';
 
 /**
@@ -52,6 +53,10 @@ export function useDashboardViewModel() {
     user: profile?.user ?? null,
     hotel: profile?.hotelData ?? null,
     roomNumber: room?.roomNumber ?? null,
+    // My Day (Dincharya) only where the hotel offers it — the server sends
+    // DINCHARYA as off without the Clinical module. Hidden until the profile
+    // has loaded, so the tile never flashes up and disappears.
+    showMyDay: profile ? isPortalModuleEnabled(profile.portalModules, 'DINCHARYA') : false,
     quickCalls: quickCallsQuery.data ?? [],
     // Per-section flags: a profile failure must NOT blank the whole
     // dashboard (reference renders an inline greeting error and keeps the

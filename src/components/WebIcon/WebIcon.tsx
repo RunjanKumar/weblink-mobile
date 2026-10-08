@@ -32,6 +32,7 @@ export type WebIconName =
   | 'booking'
   | 'profile'
   | 'settings'
+  | 'myday'
   | 'arrow';
 
 export interface WebIconProps {
@@ -57,6 +58,7 @@ const ACCENTS_BY_SCHEME = {
     food: '#fb923c',
     facilities: '#a78bfa',
     laundry: '#22d3ee',
+    myday: '#34d399',
   },
   light: {
     bell: '#a1571a',
@@ -65,6 +67,7 @@ const ACCENTS_BY_SCHEME = {
     food: '#c2410c',
     facilities: '#6d3fbd',
     laundry: '#0e6d78',
+    myday: '#047857',
   },
 } as const;
 
@@ -182,6 +185,18 @@ export function WebIcon({name, color, size = 24, filled = false}: WebIconProps) 
               d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
             />
             <Path {...stroke} d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
+          </>
+        );
+      case 'myday':
+        // Sunrise over a horizon — the web's My Day tile, verbatim.
+        return (
+          <>
+            <Path {...stroke} d="M12 2v3" />
+            <Path {...stroke} d="m4.9 6.9 2.1 2.1" />
+            <Path {...stroke} d="m19.1 6.9-2.1 2.1" />
+            <Path {...stroke} d="M2 18h20" />
+            <Path {...stroke} d="M6 22h12" />
+            <Path {...stroke} d="M8 14a4 4 0 0 1 8 0" />
           </>
         );
       case 'arrow':

@@ -35,6 +35,7 @@ export const ENDPOINTS = {
   LAUNDRY_RATE_LIST: '/v1/laundry/guest/rate-list',
   LAUNDRY_ORDER: '/v1/laundry/guest/order',
   FOLIO_GUEST: '/v1/folio/guest',
+  DINCHARYA_GUEST: '/v1/dincharya/guest',
 
   // ── In-room TV (Samsung) ──
   TV_PAIR_START: '/v1/tv/pair/start',

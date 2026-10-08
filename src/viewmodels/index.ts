@@ -29,3 +29,4 @@ export {useCartViewModel} from './CartViewModel';
 export type {PaymentMethod} from './CartViewModel';
 export {useOrderHistoryViewModel} from './OrderHistoryViewModel';
 export {useFolioViewModel} from './FolioViewModel';
+export {useDincharyaViewModel} from './DincharyaViewModel';

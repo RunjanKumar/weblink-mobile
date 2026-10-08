@@ -57,6 +57,23 @@ export interface CustomerProfile {
   user: CustomerUser;
   bookRoomData: BookedRoom[];
   hotelData?: Hotel;
+  /**
+   * Which guest-portal modules this hotel offers, resolved by the server
+   * ({FOOD: true, DINCHARYA: false, …}). Read it through `isPortalModuleEnabled`.
+   */
+  portalModules?: Record<string, boolean>;
+}
+
+/**
+ * A portal module is on unless the server says `false` — an older backend
+ * that sends no map keeps everything, exactly like the web app. The server
+ * refuses a switched-off module's APIs regardless; this only hides its tiles.
+ */
+export function isPortalModuleEnabled(
+  modules: Record<string, boolean> | null | undefined,
+  key: string,
+): boolean {
+  return !(modules && modules[key] === false);
 }
 
 /** Convenience selector for the display name across the two field variants. */

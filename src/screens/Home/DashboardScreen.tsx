@@ -842,6 +842,17 @@ export function DashboardScreen({navigation}: Props) {
               width={tileWidth}
               onPress={() => navigation.navigate('Ac')}
             />
+            {/* My Day (Dincharya) — only at hotels that offer it (Clinical module). */}
+            {dash.showMyDay ? (
+              <QuickActionTile
+                icon="myday"
+                accent={accents.myday}
+                title="My Day"
+                sub="Your wellness rhythm"
+                width={tileWidth}
+                onPress={() => navigation.navigate('MyDay')}
+              />
+            ) : null}
           </View>
         </View>
       </ScrollView>

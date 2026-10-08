@@ -7,3 +7,4 @@ export {laundryRepository} from './laundry.repository';
 export {facilityRepository} from './facility.repository';
 export {chatRepository} from './chat.repository';
 export {foodRepository} from './food.repository';
+export {dincharyaRepository} from './dincharya.repository';

@@ -11,3 +11,4 @@ export {facilityApi} from './facility.api';
 export {chatApi} from './chat.api';
 export {foodApi} from './food.api';
 export {tvApi} from './tv.api';
+export {dincharyaApi} from './dincharya.api';

@@ -46,6 +46,8 @@ import {SettingsScreen} from '../screens/Settings/SettingsScreen';
 import {TvSettingsScreen} from '../screens/Settings/TvSettingsScreen';
 import {ViewBillScreen} from '../screens/Bill/ViewBillScreen';
 import {TvViewBillScreen} from '../screens/Bill/TvViewBillScreen';
+import {MyDayScreen} from '../screens/MyDay/MyDayScreen';
+import {TvMyDayScreen} from '../screens/MyDay/TvMyDayScreen';
 
 /**
  * All stacks share `HomeStackParamList` (see types.ts) — each navigator
@@ -90,6 +92,7 @@ export function HomeStackNavigator() {
       <Stack.Screen name="Profile" component={IS_TV ? TvProfileScreen : ProfileScreen} />
       <Stack.Screen name="Settings" component={IS_TV ? TvSettingsScreen : SettingsScreen} />
       <Stack.Screen name="ViewBill" component={IS_TV ? TvViewBillScreen : ViewBillScreen} />
+      <Stack.Screen name="MyDay" component={IS_TV ? TvMyDayScreen : MyDayScreen} />
     </Stack.Navigator>
   );
 }
