@@ -117,11 +117,16 @@ function DishCard({food, onAdd}: {food: Food; onAdd: () => void}) {
       ) : null}
 
       <View style={{padding: 11}}>
+        {/* Fixed two-line block like the description below: one line cut most
+            dish names short ("CHOCOLATE LAVA C…"), and a fixed height keeps
+            every card's price on the same baseline. */}
         <Text
-          numberOfLines={1}
+          numberOfLines={2}
           style={{
             color: DS.text,
             fontSize: 12,
+            lineHeight: 15,
+            height: 30,
             fontWeight: '600',
             letterSpacing: 0.6,
             fontFamily: FONT,

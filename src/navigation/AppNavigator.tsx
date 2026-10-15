@@ -168,7 +168,11 @@ export function AppNavigator() {
         // The Reception TAB is the chat itself (the phone's intro page has no
         // ten-foot equivalent); TV wears the glass design system.
         component={(IS_TV ? TvChatScreen : ChatScreen) as unknown as React.ComponentType}
-        options={{title: 'Reception'}}
+        // Every other TV screen sits in a stack that insets it by 24 for overscan
+        // (useStackScreenOptions), and TvBackdrop bleeds back out by exactly that.
+        // This tab has no stack, so without the same inset the chat ran 24px
+        // closer to the bezel than every other screen.
+        options={{title: 'Reception', ...(IS_TV ? {sceneStyle: {paddingHorizontal: 24}} : {})}}
       />
       <Tab.Screen name="FoodTab" component={FoodStackNavigator} options={{title: 'Food'}} />
       <Tab.Screen

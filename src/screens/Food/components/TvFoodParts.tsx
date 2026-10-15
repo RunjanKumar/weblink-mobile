@@ -242,11 +242,14 @@ export function FoodRail({
                   size={17}
                   color={active ? DS.gold : DS.text2}
                 />
+                {/* Two lines: the rail is narrow, and at one line most real
+                    category names ("DESSERTS & BEVERAGES") were cut to a stub. */}
                 <Text
-                  numberOfLines={1}
+                  numberOfLines={2}
                   style={{
                     color: active ? DS.gold : DS.text,
                     fontSize: 11,
+                    lineHeight: 14,
                     fontWeight: active ? '700' : '500',
                     letterSpacing: 0.6,
                     marginLeft: 10,

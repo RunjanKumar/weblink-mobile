@@ -129,12 +129,16 @@ export function FacilityCard({
             paddingHorizontal: 12,
             paddingBottom: 10,
           }}>
+          {/* Two lines each: the spa row fits five narrow cards, where one line
+              left "BODY …" and "12:00 PM – …". The band is bottom-anchored, so
+              it grows up over the photo instead of changing the card's size. */}
           <View style={{flex: 1, paddingRight: 8}}>
             <Text
-              numberOfLines={1}
+              numberOfLines={2}
               style={{
                 color: DS.text,
                 fontSize: 13,
+                lineHeight: 16,
                 fontWeight: '600',
                 letterSpacing: 0.8,
                 fontFamily: FONT,
@@ -143,8 +147,8 @@ export function FacilityCard({
             </Text>
             {caption ? (
               <Text
-                numberOfLines={1}
-                style={{color: DS.text2, fontSize: 10, marginTop: 3, fontFamily: FONT}}>
+                numberOfLines={2}
+                style={{color: DS.text2, fontSize: 10, lineHeight: 13, marginTop: 3, fontFamily: FONT}}>
                 {caption}
               </Text>
             ) : null}

@@ -25,6 +25,7 @@ const KEY_LEFT = 37;
 const KEY_UP = 38;
 const KEY_RIGHT = 39;
 const KEY_DOWN = 40;
+const KEY_OK = 13;
 /** webOS remote's Back button. Not a standard DOM keycode. */
 const KEY_BACK_WEBOS = 461;
 /** Samsung Tizen remote's Back button ("Return"). */
@@ -187,14 +188,55 @@ function isTextEntry(el: Element | null, direction: Direction): boolean {
   return isText && (direction === 'left' || direction === 'right');
 }
 
+/** `TvBackButton`'s label — the first control of every TV screen's own panel. */
+const SCREEN_BACK_LABEL = 'Back';
+
+/**
+ * Where the guest left from on each screen they navigated away from, newest
+ * last, so Back can put the highlight on the tile that opened the screen
+ * instead of the top of the page. Bounded: a stale entry is simply skipped.
+ */
+const returnTo: HTMLElement[] = [];
+const RETURN_DEPTH = 10;
+
+/**
+ * The screen's first real control. The shared TV header (View Bill, Netflix,
+ * Cart…) comes first in DOM order on every screen, then the screen's own Back
+ * button, then its content — so start just after Back. Screens without a Back
+ * button (the dashboard) start at the top.
+ */
+function firstScreenControl(): HTMLElement | undefined {
+  const list = candidates();
+  const back = list.findIndex(el => el.getAttribute('aria-label') === SCREEN_BACK_LABEL);
+  if (back < 0) {
+    return list[0];
+  }
+  // Never land on something that changes the room: the press that opened the
+  // screen can repeat (a held OK), and on Climate the first control is the AC
+  // power switch. Fall back to Back itself when every control is one (Climate).
+  const safe = list
+    .slice(back + 1)
+    .find(el => !ROOM_CONTROL_LABEL.test(el.getAttribute('aria-label') ?? ''));
+  return safe ?? list[back];
+}
+
+/**
+ * Labels of controls that switch real room hardware (TvAcScreen, TvLightsScreen,
+ * the dashboard's scene/curtain cards). Labels, because these are the only
+ * stable handle the DOM gives us; keep in sync if those labels change.
+ */
+const ROOM_CONTROL_LABEL =
+  /^turn |, currently (on|off)$|^(cooler|warmer|slower|faster)$|^fan (level|speed)|mode$|^toggle |curtain/i;
+
 /**
  * Put the highlight somewhere sensible when a new screen appears.
  *
  * Without this the first arrow press after navigating lands on whatever
  * `candidates()` happens to return first, so the guest presses a direction and
  * the highlight appears somewhere unrelated. Seeding on arrival means there is
- * always a visible starting point — normally the back button or the first
- * control in the header.
+ * always a visible starting point:
+ *  - going back: the element the guest left from, once it is visible again;
+ *  - going forward: the new screen's first control (`firstScreenControl`).
  *
  * Only seeds when nothing useful is focused: if the previous screen's element
  * was removed, `document.activeElement` falls back to <body>; if that screen
@@ -202,13 +244,87 @@ function isTextEntry(el: Element | null, direction: Direction): boolean {
  * no longer `isVisible`. An element that survived the transition (a modal's
  * button) is left alone.
  */
-function seedFocus(): void {
+/** Frames to wait, going back, for the screen underneath to finish uncovering. */
+const RETURN_WAIT_FRAMES = 20;
+
+/** A back-restore is waiting for its element to be uncovered. */
+let restoring = false;
+
+function seedFocus(back: boolean, attempt = 0): void {
   const active = document.activeElement as HTMLElement | null;
   if (active && active !== document.body && isVisible(active)) {
+    restoring = false;
     return;
   }
-  candidates()[0]?.focus();
+  // Back: return to the newest remembered element once it is on screen again —
+  // the screen underneath can still be finishing its transition (aria-hidden
+  // lifts a few frames after the pop). `restoring` keeps a follow-up state
+  // event (e.g. AppNavigator's forgetTab reset) from stealing the highlight.
+  if (back || restoring) {
+    restoring = true;
+    while (returnTo.length) {
+      const el = returnTo[returnTo.length - 1];
+      if (!el || !el.isConnected) {
+        returnTo.pop();
+        continue;
+      }
+      if (isVisible(el)) {
+        returnTo.pop();
+        restoring = false;
+        el.focus();
+        return;
+      }
+      if (attempt < RETURN_WAIT_FRAMES) {
+        requestAnimationFrame(() => seedFocus(true, attempt + 1));
+        return;
+      }
+      break;
+    }
+    restoring = false;
+    firstScreenControl()?.focus();
+    return;
+  }
+  // Forward: start on the new screen's first control. (The element that opened
+  // it was already remembered by the state listener — see `lastActivated`.)
+  firstScreenControl()?.focus();
 }
+
+/**
+ * The control the guest last pressed — OK on the remote or a Magic Remote
+ * click. Read when a forward navigation lands: THAT is the tile Back should
+ * return to. Not `document.activeElement` at seeding time, because several
+ * screens take focus for themselves before `seedFocus` gets to run.
+ */
+let lastActivated: HTMLElement | null = null;
+
+type NavState = {
+  type?: string;
+  index?: number;
+  history?: unknown[];
+  routes?: {state?: NavState}[];
+};
+
+/**
+ * How deep the guest is: tab history length plus each focused stack's index.
+ * It grows on every forward move (push, or jump to another tab) and shrinks on
+ * every Back, which is how `seedFocus` tells the two apart — the DOM cannot,
+ * because a popped screen can linger for a few frames.
+ *
+ * A stack's ROOT counts 0, not 1: the Reception tab has no stack at all, so
+ * counting roots made the dashboard (history 1 + root 1) and the chat
+ * (history 2 + nothing) look equally deep, and Help Desk read as no move.
+ */
+function navDepth(): number {
+  let depth = 0;
+  let state = navigationRef.getRootState() as NavState | undefined;
+  while (state) {
+    depth += state.type === 'tab' ? (state.history?.length ?? 1) : (state.index ?? 0);
+    state = state.routes?.[state.index ?? 0]?.state;
+  }
+  return depth;
+}
+
+let lastDepth = 0;
 
 let installed = false;
 
@@ -222,12 +338,35 @@ export function installWebOSRemote(): void {
   // frames so the DOM is painted and off-screen siblings have been laid out
   // (isVisible filters on geometry, which is zero until then).
   navigationRef.addListener('state', () => {
-    requestAnimationFrame(() => requestAnimationFrame(seedFocus));
+    const depth = navDepth();
+    const back = depth < lastDepth;
+    if (depth > lastDepth && lastActivated?.isConnected) {
+      returnTo.push(lastActivated);
+      if (returnTo.length > RETURN_DEPTH) {
+        returnTo.shift();
+      }
+    }
+    lastActivated = null;
+    lastDepth = depth;
+    requestAnimationFrame(() => requestAnimationFrame(() => seedFocus(back)));
   });
+
+  // Magic Remote pointer: a click is the same "this opened the next screen".
+  document.addEventListener(
+    'click',
+    event => {
+      const target = event.target instanceof Element ? event.target : null;
+      lastActivated = target?.closest<HTMLElement>(FOCUSABLE_SELECTOR) ?? null;
+    },
+    true,
+  );
 
   document.addEventListener(
     'keydown',
     event => {
+      if (event.keyCode === KEY_OK) {
+        lastActivated = document.activeElement as HTMLElement | null;
+      }
       if (event.keyCode === KEY_BACK_WEBOS || event.keyCode === KEY_BACK_TIZEN) {
         // Priority 1: close the top-most open modal (dialog / payment sheet).
         // Priority 2: pop the navigator (React Navigation is not wired to
@@ -253,9 +392,9 @@ export function installWebOSRemote(): void {
       }
 
       // Nothing focused yet (fresh screen), or focus was left on a screen that is
-      // now covered — seed focus at the first element the guest can see.
+      // now covered — seed focus at the screen's first control.
       if (!active || active === document.body || !isVisible(active)) {
-        candidates()[0]?.focus();
+        firstScreenControl()?.focus();
         event.preventDefault();
         return;
       }
