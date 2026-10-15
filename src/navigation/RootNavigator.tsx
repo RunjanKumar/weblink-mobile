@@ -19,7 +19,7 @@ import {TvGateScreen} from '../screens/Tv/TvGateScreen';
  * the authenticated app or the auth flow. Because this is driven by auth
  * `status`, a 401 anywhere resets the user straight back to Login.
  *
- * A Samsung in-room TV never shows Login: the room's guest is signed in
+ * An in-room TV (Samsung, LG, Android TV) never shows Login: the room's guest is signed in
  * automatically (TvPresenceContext), and until then it shows TvGateScreen.
  */
 export function RootNavigator() {

@@ -105,10 +105,12 @@ function Tile({
           // the shared glow is what makes the tiles read as one glass sheet.
           // NOTE: no rotation here — any sideways SOURCE photo (phone EXIF)
           // gets fixed at the asset level, like door.jpg was.
+          // Absolute, like the hero photo: webOS 5.x/6.x (Chromium 68/79) cannot
+          // resolve `height: '100%'` inside this flex:1 box and draws it 0px tall.
           <Image
             source={image}
             resizeMode="cover"
-            style={{width: '100%', height: '100%', opacity: 0.85}}
+            style={{position: 'absolute', width: '100%', height: '100%', opacity: 0.85}}
           />
         ) : (
           <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>

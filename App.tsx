@@ -26,8 +26,8 @@ import { queryClient } from './src/services/queryClient';
  *   QueryClientProvider     – React Query cache
  *   ThemeProvider           – design tokens (dark by default)
  *   AuthProvider            – session state; drives RootNavigator's auth switch
- *   TvPresenceProvider      – Samsung in-room TV only: pairing + automatic
- *                             guest sign-in (a no-op on every other build)
+ *   TvPresenceProvider      – in-room TVs (Samsung, LG, Android TV): pairing +
+ *                             automatic guest sign-in (a no-op on phones)
  */
 /** Status bar that follows the active scheme (dark icons on the light theme). */
 function ThemedStatusBar() {

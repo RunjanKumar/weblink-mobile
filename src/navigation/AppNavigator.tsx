@@ -3,7 +3,9 @@ import {Pressable, type StyleProp, type ViewStyle} from 'react-native';
 import {
   createBottomTabNavigator,
   type BottomTabBarButtonProps,
+  type BottomTabNavigationProp,
 } from '@react-navigation/bottom-tabs';
+import {CommonActions} from '@react-navigation/native';
 import {WebIcon, type WebIconName} from '../components';
 import type {AppTabParamList} from './types';
 import {IS_TV} from '../utils/responsive';
@@ -41,6 +43,43 @@ const ICON_BY_ROUTE = Object.fromEntries(TABS.map(t => [t.name, t])) as Record<
   keyof AppTabParamList,
   (typeof TABS)[number]
 >;
+
+/**
+ * TV only: a tab forgets its screens the moment the guest leaves it.
+ *
+ * The TV has no tab bar — the dashboard and the header jump straight to a
+ * screen INSIDE a tab (header cart → FoodTab/Cart, Food Order tile →
+ * FoodTab/Food). Tabs normally keep their stack, so after Cart → Back, a later
+ * Food Order became [Cart, Food] and Back landed on the cart instead of the
+ * dashboard the guest came from. Popping to top is not enough (the top of that
+ * stack IS Cart), and a reset stack would still be mounted and push on top of
+ * its initial route. A fresh route key unmounts the tab's navigator, so the
+ * next jump builds the stack from scratch with exactly the screen asked for.
+ *
+ * Keyed on the tab NAME, not on `route.state`: a nested stack that was opened
+ * through `navigate(tab, {screen})` is not mirrored into the tab route's `state`
+ * at blur time, so checking for it skipped exactly the case this is for.
+ */
+const STACK_TABS: ReadonlySet<string> = new Set(['FoodTab', 'FacilitiesTab', 'ServicesTab']);
+
+function forgetTab(
+  navigation: BottomTabNavigationProp<AppTabParamList>,
+  route: {key: string; name: string},
+): void {
+  if (!STACK_TABS.has(route.name)) {
+    return; // Home stays as is; the Reception chat has no stack to forget
+  }
+  const state = navigation.getState();
+  navigation.dispatch({
+    ...CommonActions.reset({
+      ...state,
+      routes: state.routes.map(r =>
+        r.key === route.key ? {key: `${r.name}-${Date.now()}`, name: r.name} : r,
+      ),
+    }),
+    target: state.key,
+  });
+}
 
 /**
  * Tab button with a D-pad focus ring.
@@ -88,6 +127,9 @@ export function AppNavigator() {
 
   return (
     <Tab.Navigator
+      screenListeners={
+        IS_TV ? ({navigation, route}) => ({blur: () => forgetTab(navigation, route)}) : undefined
+      }
       screenOptions={({route}) => ({
         headerShown: false,
         // On TV the home screen is the fixed dark golden-glass mockup, so the

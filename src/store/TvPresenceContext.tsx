@@ -8,11 +8,12 @@ import {STORAGE_KEYS} from '../constants/storageKeys';
 import {logger} from '../services/logger';
 import {storage} from '../services/storage.service';
 import {deviceId, platformLabel} from '../services/tvPlatform';
-import {IS_TIZEN} from '../utils/responsive';
+import {IS_TV} from '../utils/responsive';
 import {useAuth} from './AuthContext';
 
 /**
- * In-room TV presence (Samsung Tizen build only).
+ * In-room TV presence — every TV build (Samsung Tizen, LG webOS, Android TV);
+ * phones keep the normal Login.
  *
  * The TV never shows a login screen. Instead:
  *   1. Unpaired → it asks the backend for a 6-digit code and shows it; staff
@@ -29,7 +30,7 @@ import {useAuth} from './AuthContext';
 export type TvPhase = 'starting' | 'pairing' | 'idle' | 'guest' | 'offline';
 
 interface TvPresenceValue {
-  /** False everywhere except the Samsung TV build; then nothing below applies. */
+  /** False on phones; then nothing below applies. */
   enabled: boolean;
   phase: TvPhase;
   /** The code to show while pairing. */
@@ -50,14 +51,14 @@ const httpStatus = (error: unknown): number | undefined =>
   axios.isAxiosError(error) ? error.response?.status : undefined;
 
 export function TvPresenceProvider({children}: {children: React.ReactNode}) {
-  // IS_TIZEN is a build-time constant, so the hooks inside never change order.
-  if (!IS_TIZEN) {
+  // IS_TV never changes while the app runs, so the hooks inside never change order.
+  if (!IS_TV) {
     return <TvPresenceContext.Provider value={DISABLED}>{children}</TvPresenceContext.Provider>;
   }
-  return <TizenPresence>{children}</TizenPresence>;
+  return <RoomTvPresence>{children}</RoomTvPresence>;
 }
 
-function TizenPresence({children}: {children: React.ReactNode}) {
+function RoomTvPresence({children}: {children: React.ReactNode}) {
   const {status, session, signInWithToken, resetLocal} = useAuth();
   const [deviceToken, setDeviceToken] = useState<string | null>(
     () => storage.getString(STORAGE_KEYS.TV_DEVICE_TOKEN) ?? null,

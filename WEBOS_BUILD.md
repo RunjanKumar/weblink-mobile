@@ -57,9 +57,10 @@ The TV must be in **Developer Mode** first. This is LG's process, not ours:
    ```
    or in one step: `npm run ipk:install`.
 
-> **Dev Mode sessions expire after roughly 50 hours** and the app is removed.
-> Extend the session from the same Developer Mode app on the TV. This is a
-> testing channel only.
+> **Dev Mode sessions expire** (LG now allows up to 1000 hours) and the app is
+> removed. Extend the session from the same Developer Mode app on the TV, or
+> from the PC with `npx ares-launch com.palmdts.devmode -p extend=true -d mytv`.
+> This is a testing channel only.
 
 > **Updates need a cold start.** webOS *resumes* a running app instead of
 > reloading it — `ares-install` over a running instance succeeds but the OLD
@@ -206,16 +207,29 @@ through to close the app at the root.
   fail with `exports is not defined`.
 - **`disableImportExportTransform: true`** — Metro wants CommonJS, webpack needs
   ESM preserved, or React Navigation's `lib/module` build breaks the same way.
-- The API accepts browser origins (verified against
-  `dev-hotel-api.wattinventive.com`), so **no CORS proxy is needed**.
+- **No CORS proxy is needed.** On a real webOS 22 TV the packaged app sends no
+  `Origin` header at all, and the API allows Origin-less requests even with its
+  production CORS allowlist on.
+- **Old TVs: test the bundle, not just the source.** webOS 5.x/6.x run Chromium
+  68/79. Every package in `node_modules` is lowered to that syntax, and webpack
+  is pinned to `target: ['web', 'es2018']` because the minifier otherwise
+  rewrites `x == null ? void 0 : x` into `??` after babel has run. Check a build
+  with an ES2019 parse of `web-build/static/main.*.js` (acorn), and watch for
+  CSS those engines lack: `inset` (87), flex `gap` (84), and `height: '100%'`
+  inside a `flex: 1` parent, which they draw 0px tall.
+- **Screens underneath stay mounted.** React Navigation keeps the previous
+  screen in the DOM with full geometry and only marks it `aria-hidden`, so the
+  spatial navigation in `webosRemote.web.ts` must skip `aria-hidden` subtrees —
+  otherwise the D-pad walks onto (and OK presses) buttons the guest cannot see.
 
 ---
 
 ## Not yet done
 
-- **Never run on real webOS hardware.** Verified in Chromium (the same engine
-  webOS uses) at phone size. Needs a pass at 1920×1080 on an actual TV, and the
-  spatial-navigation order wants checking with a real remote.
+- **Physical remote not yet tried.** Verified on a real webOS 22 TV (pairing,
+  every dashboard screen, Back) by driving it over the inspector port, and on
+  Chromium 68/79 for webOS 5.x/6.x. Still to check by hand: the Magic Remote
+  pointer and wheel, HOME/EXIT, the on-screen keyboard, and a power cycle.
 - No splash image — `appinfo.json` has `bgColor` only. Add `splashBackground`
   (1920×1080 PNG) before any store submission.
 - Launcher icons are the same placeholder bed motif as the Android build.

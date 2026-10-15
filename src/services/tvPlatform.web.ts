@@ -157,6 +157,10 @@ function readDuid(): string {
 
 /** Samsung's per-TV unique ID (DUID). Null off Tizen or without the privilege. */
 export function deviceId(): string | null {
+  // LG has its own ID API (not wired yet); probing Samsung's here only logs noise.
+  if (!IS_TIZEN) {
+    return null;
+  }
   try {
     return readDuid();
   } catch (e) {

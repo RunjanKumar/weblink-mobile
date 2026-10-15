@@ -53,8 +53,20 @@ function isVisible(el: Element): boolean {
   if (rect.top > window.innerHeight || rect.left > window.innerWidth) {
     return false;
   }
+  // The screen underneath the current one stays mounted with its full on-screen
+  // geometry; React Navigation only marks it aria-hidden (its buttons inherit
+  // pointer-events: none). Without this check the D-pad walks onto buttons the
+  // guest cannot see — and OK would press them (a curtain, DND) from the Cart.
+  if (el.closest('[aria-hidden="true"]')) {
+    return false;
+  }
   const style = window.getComputedStyle(el);
-  return style.visibility !== 'hidden' && style.display !== 'none' && style.opacity !== '0';
+  return (
+    style.visibility !== 'hidden' &&
+    style.display !== 'none' &&
+    style.opacity !== '0' &&
+    style.pointerEvents !== 'none'
+  );
 }
 
 function candidates(): HTMLElement[] {
@@ -185,8 +197,10 @@ function isTextEntry(el: Element | null, direction: Direction): boolean {
  * control in the header.
  *
  * Only seeds when nothing useful is focused: if the previous screen's element
- * was removed, `document.activeElement` falls back to <body>. An element that
- * survived the transition (a modal's button) is left alone.
+ * was removed, `document.activeElement` falls back to <body>; if that screen
+ * stayed mounted underneath, the tile that opened this one keeps focus but is
+ * no longer `isVisible`. An element that survived the transition (a modal's
+ * button) is left alone.
  */
 function seedFocus(): void {
   const active = document.activeElement as HTMLElement | null;
@@ -238,8 +252,9 @@ export function installWebOSRemote(): void {
         return;
       }
 
-      // Nothing focused yet (fresh screen) — seed focus at the first element.
-      if (!active || active === document.body) {
+      // Nothing focused yet (fresh screen), or focus was left on a screen that is
+      // now covered — seed focus at the first element the guest can see.
+      if (!active || active === document.body || !isVisible(active)) {
         candidates()[0]?.focus();
         event.preventDefault();
         return;

@@ -21,6 +21,7 @@ import 'react-native-gesture-handler';
 import './global.css';
 
 import {AppRegistry} from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import App from './App';
 // Default import, not `{name}` — webpack is deprecating named exports from JSON.
 import appJson from './app.json';
@@ -45,6 +46,12 @@ function registerIconFont() {
 }
 
 registerIconFont();
+
+// NetInfo's web build probes `reachabilityUrl: '/'` every few seconds to fill
+// in `isInternetReachable`. The TV loads the app from a file path, so that is
+// `file:///` — a request that can only fail, forever. Nothing here reads
+// `isInternetReachable` (SocketContext uses `isConnected`), so skip the probe.
+NetInfo.configure({reachabilityShouldRun: () => false});
 
 // Arrow-key focus movement + the webOS Back button. No-op in a desktop browser
 // beyond making arrows navigate, which is handy for testing.

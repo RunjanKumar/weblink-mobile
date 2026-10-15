@@ -94,7 +94,9 @@
             el = document.createElement('pre');
             el.id = 'boot-error';
             el.style.cssText =
-              'position:fixed;inset:0;z-index:9999;margin:0;padding:24px;overflow:auto;' +
+              // Longhand, not `inset:0` — `inset` is Chromium 87+, so on webOS
+              // 5.x/6.x the overlay would sit off-screen exactly when needed.
+              'position:fixed;top:0;right:0;bottom:0;left:0;z-index:9999;margin:0;padding:24px;overflow:auto;' +
               'background:#0d0d0d;color:#ef4444;font:14px/1.5 monospace;white-space:pre-wrap';
             document.body.appendChild(el);
           }

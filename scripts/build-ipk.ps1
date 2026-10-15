@@ -167,7 +167,7 @@ if ($Install) {
     Write-Host "    2. npx ares-setup-device        # add the TV (IP + passphrase)" -ForegroundColor DarkGray
     Write-Host "    3. npx ares-install `"$($ipk.Name)`"" -ForegroundColor DarkGray
     Write-Host "    4. npx ares-launch com.wattinventive.weblink" -ForegroundColor DarkGray
-    Write-Host "  Dev Mode sessions expire (~50h) - extend them from the same TV app." -ForegroundColor DarkGray
+    Write-Host "  Dev Mode sessions expire (up to 1000h) - extend from the TV app or: npx ares-launch com.palmdts.devmode -p extend=true" -ForegroundColor DarkGray
 }
 
 Write-Host ""

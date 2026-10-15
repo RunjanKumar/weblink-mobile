@@ -36,7 +36,8 @@ export function platform(): TvPlatformName {
 }
 
 export function platformLabel(): string {
-  return `React Native (${Platform.OS})`;
+  // Sent as the TV's model when it pairs, so staff can tell it apart in the admin panel.
+  return Platform.isTV ? 'Android TV' : `React Native (${Platform.OS})`;
 }
 
 export function deviceId(): string | null {

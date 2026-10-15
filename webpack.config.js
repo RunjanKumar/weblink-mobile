@@ -46,6 +46,11 @@ module.exports = (env = {}, argv = {}) => {
 
   return {
     mode: isProduction ? 'production' : 'development',
+    // Pin the language level of everything webpack and the minifier EMIT.
+    // Plain `web` lets Terser assume ES2020 and rewrite `x == null ? void 0 : x`
+    // into `x ?? void 0` AFTER babel has run — invisible in the source, fatal
+    // on webOS 5.x/6.x (Chromium 68/79). ES2018 is all Chromium 68 parses.
+    target: ['web', 'es2018'],
     entry: path.resolve(__dirname, 'index.web.js'),
     output: {
       path: outputDir,
@@ -177,6 +182,35 @@ module.exports = (env = {}, argv = {}) => {
                 // nothing to transform and could only inject imports of a
                 // module this bundle no longer contains.
               ],
+            },
+          },
+        },
+        {
+          // Every OTHER package in node_modules ships compiled-but-modern JS
+          // that the rule above never sees. Several (TanStack Query, zod,
+          // axios) use `?.`, `??`, class fields and `#private` members —
+          // syntax webOS 5.x (Chromium 68) and 6.x (Chromium 79) cannot even
+          // parse, so the whole bundle fails and the TV shows a black screen.
+          // Lower the SYNTAX only; missing built-in methods already come from
+          // the `core-js/stable` entry import.
+          test: /\.[cm]?js$/,
+          include: path.resolve(__dirname, 'node_modules'),
+          exclude: [
+            // Already handled, with the full preset chain, by the rule above.
+            ...transpileModules.map(m => path.resolve(__dirname, 'node_modules', m)),
+            // The polyfills and babel's own helpers must stay untouched, or
+            // the helpers end up importing themselves.
+            /[\\/]node_modules[\\/]core-js[\\/]/,
+            /[\\/]node_modules[\\/]@babel[\\/]runtime[\\/]/,
+          ],
+          use: {
+            loader: 'babel-loader',
+            options: {
+              cacheDirectory: true,
+              configFile: false,
+              babelrc: false,
+              sourceType: 'unambiguous',
+              presets: [['@babel/preset-env', {targets: {chrome: '68'}, bugfixes: true}]],
             },
           },
         },
