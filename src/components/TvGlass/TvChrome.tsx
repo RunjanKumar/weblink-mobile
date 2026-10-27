@@ -10,6 +10,7 @@ import {NoSmokingIcon} from './RoomIcons';
 import {useDashboardViewModel} from '../../viewmodels';
 import {useFoodOrder} from '../../store/FoodOrderContext';
 import {getDisplayName} from '../../models/user.model';
+import {SHOW_COMING_SOON} from '../../utils/responsive';
 
 import nexgenLogo from '../../assets/tv/nexgen-logo.png';
 
@@ -199,14 +200,20 @@ export function TvTopBar({onMenu}: {onMenu?: () => void}) {
           label="View Bill"
           onPress={() => rootNavigate('Home', {screen: 'ViewBill'})}
         />
-        <TopChip iconNode={<NetflixIcon />} label="Netflix" onPress={comingSoon} />
-        <TopChip iconNode={<CastIcon />} label="Google Cast" onPress={comingSoon} />
+        {SHOW_COMING_SOON ? (
+          <>
+            <TopChip iconNode={<NetflixIcon />} label="Netflix" onPress={comingSoon} />
+            <TopChip iconNode={<CastIcon />} label="Google Cast" onPress={comingSoon} />
+          </>
+        ) : null}
       </View>
 
       <View style={{flex: 1, alignItems: 'center'}}>
         {dash.isLoading ? (
           <ActivityIndicator color={DS.gold} />
-        ) : dash.profileError ? (
+        ) : dash.profileError && !dash.user ? (
+          // Only when there is no greeting to show: a refetch that fails while
+          // the TV is offline keeps the cached guest (the offline notice says why).
           <Text style={{color: DS.danger, fontSize: 13, fontWeight: '600', fontFamily: FONT}}>
             Could not load profile
           </Text>

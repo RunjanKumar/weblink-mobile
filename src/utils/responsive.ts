@@ -39,6 +39,15 @@ export const IS_TV: boolean = Platform.isTV === true || IS_WEBOS || IS_TIZEN;
  */
 export const IS_WEB_BUILD: boolean = Platform.OS === 'web';
 
+/**
+ * Whether the TV shows its "coming soon" placeholders (Netflix, Google Cast,
+ * Explore Hotel, Live TV). Not on LG: the webOS build ships through the LG
+ * Content Store, whose QA fails any button that does nothing ("all UI buttons
+ * work properly", self-check 1.4) — and LG TVs have no Google Cast at all.
+ * Samsung and Android TV keep them for the client's presentation.
+ */
+export const SHOW_COMING_SOON: boolean = !IS_WEBOS;
+
 export type DeviceType = 'phone' | 'tablet' | 'tv';
 
 // Baseline device width the design tokens were authored against.

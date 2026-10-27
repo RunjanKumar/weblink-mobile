@@ -10,8 +10,9 @@
  * Handled keys:
  *   37/38/39/40  arrows  -> spatial focus move
  *   13           OK      -> left to the browser (activates the focused element)
- *   461 / 10009  Back    -> pop one screen. At the root: webOS closes the app;
- *                           Tizen swallows it (see the keydown handler).
+ *   461 / 10009  Back    -> pop one screen. At the root: webOS platformBack()
+ *                           (exit popup / Home); Tizen swallows it (see the
+ *                           keydown handler).
  *
  * Arrows, OK and Back reach a Tizen web app without `tvinputdevice.registerKey`;
  * only media / colour keys need registering.
@@ -30,6 +31,17 @@ const KEY_OK = 13;
 const KEY_BACK_WEBOS = 461;
 /** Samsung Tizen remote's Back button ("Return"). */
 const KEY_BACK_TIZEN = 10009;
+
+/**
+ * webOSTV.js's `webOS.platformBack()`, without bundling the library — it only
+ * forwards to the WebAppManager bridge, exactly like this.
+ */
+function platformBack(): void {
+  const palm = (window as unknown as {PalmSystem?: {platformBack?: () => void}}).PalmSystem;
+  if (palm && palm.platformBack) {
+    palm.platformBack();
+  }
+}
 
 type Direction = 'left' | 'up' | 'right' | 'down';
 
@@ -361,6 +373,24 @@ export function installWebOSRemote(): void {
     true,
   );
 
+  // Magic Remote pointer: the control under the cursor takes focus, so it shows
+  // the same ring the D-pad gives (LG self-check "Mouse Over/Focus") and the
+  // arrow keys carry on from where the pointer left off. Text fields are left
+  // alone — focusing one opens the webOS on-screen keyboard.
+  document.addEventListener('mouseover', event => {
+    const target = event.target instanceof Element ? event.target : null;
+    const control = target?.closest<HTMLElement>(FOCUSABLE_SELECTOR);
+    if (
+      !control ||
+      control === document.activeElement ||
+      control.matches('input, textarea, select') ||
+      !isVisible(control)
+    ) {
+      return;
+    }
+    control.focus({preventScroll: true});
+  });
+
   document.addEventListener(
     'keydown',
     event => {
@@ -372,12 +402,15 @@ export function installWebOSRemote(): void {
         // Priority 2: pop the navigator (React Navigation is not wired to
         // browser history — history.back() would exit the app from anywhere).
         // At the root with nothing open:
-        //  - webOS: let the press through; webOS closes the app, which is what
-        //    LG expects from Back.
+        //  - webOS: platformBack(). appinfo sets disableBackHistoryAPI, so the
+        //    system does nothing on its own — LG requires the entry screen to
+        //    show the exit popup (webOS 6+) or open Home (5.0), and
+        //    platformBack() is what triggers that platform behaviour.
         //  - Tizen: swallow it. In a hotel the app IS the TV's home screen, so
         //    Back at the root must not leave it.
-        if (closeTopModal() || goBackIfPossible() || IS_TIZEN) {
-          event.preventDefault();
+        event.preventDefault();
+        if (!closeTopModal() && !goBackIfPossible() && !IS_TIZEN) {
+          platformBack();
         }
       }
 

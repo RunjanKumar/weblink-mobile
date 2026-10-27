@@ -98,6 +98,12 @@ foreach ($required in @('appinfo.json', 'icon.png', 'largeIcon.png')) {
 }
 Write-Ok "webos/ metadata present"
 
+# The app ID lives in ONE place, appinfo.json: LG's Seller Lounge registers the
+# app under it and reads it back out of every uploaded .ipk, so a second copy
+# here could only drift.
+$appId = (Get-Content (Join-Path $webosSrc 'appinfo.json') -Raw | ConvertFrom-Json).id
+Write-Ok "app id: $appId"
+
 # -- 2. Web bundle -----------------------------------------------------------
 $mode = if ($Dev) { 'development' } else { 'production' }
 Write-Step "Bundling the web app ($mode) ..."
@@ -153,10 +159,10 @@ if ($Install) {
         # successful install). Close first, then install, then launch fresh.
         $previous = $ErrorActionPreference
         $ErrorActionPreference = 'Continue'
-        try { npx ares-launch @devArgs --close com.wattinventive.weblink 2>$null | Out-Null } finally { $ErrorActionPreference = $previous }
+        try { npx ares-launch @devArgs --close $appId 2>$null | Out-Null } finally { $ErrorActionPreference = $previous }
         Invoke-Native -What 'ares-install' -Command { npx ares-install @devArgs $ipk.FullName }
-        Invoke-Native -What 'ares-launch' -Command { npx ares-launch @devArgs com.wattinventive.weblink }
-        Write-Ok "installed + cold-started com.wattinventive.weblink"
+        Invoke-Native -What 'ares-launch' -Command { npx ares-launch @devArgs $appId }
+        Write-Ok "installed + cold-started $appId"
     } finally { Pop-Location }
 } else {
     Write-Host ""
@@ -166,7 +172,7 @@ if ($Install) {
     Write-Host "       The app then shows the TV's IP address and a passphrase." -ForegroundColor DarkGray
     Write-Host "    2. npx ares-setup-device        # add the TV (IP + passphrase)" -ForegroundColor DarkGray
     Write-Host "    3. npx ares-install `"$($ipk.Name)`"" -ForegroundColor DarkGray
-    Write-Host "    4. npx ares-launch com.wattinventive.weblink" -ForegroundColor DarkGray
+    Write-Host "    4. npx ares-launch $appId" -ForegroundColor DarkGray
     Write-Host "  Dev Mode sessions expire (up to 1000h) - extend from the TV app or: npx ares-launch com.palmdts.devmode -p extend=true" -ForegroundColor DarkGray
 }
 

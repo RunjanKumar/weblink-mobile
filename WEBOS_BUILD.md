@@ -24,7 +24,7 @@ src/  ──┬── Metro   → app-release.apk  (phone, Android TV)
 npm run ipk
 ```
 
-Output: `dist-webos/com.wattinventive.weblink_1.0.0_all.ipk` (~0.75 MB).
+Output: `dist-webos/com.wattinventive.nexgenhotels_1.0.0_all.ipk` (~0.75 MB).
 
 Other commands:
 
@@ -52,8 +52,8 @@ The TV must be in **Developer Mode** first. This is LG's process, not ours:
    Add a device with the TV's IP (port 9922, user `prisoner`) and the passphrase.
 5. Install and launch:
    ```powershell
-   npx ares-install dist-webos/com.wattinventive.weblink_1.0.0_all.ipk
-   npx ares-launch com.wattinventive.weblink
+   npx ares-install dist-webos/com.wattinventive.nexgenhotels_1.0.0_all.ipk
+   npx ares-launch com.wattinventive.nexgenhotels
    ```
    or in one step: `npm run ipk:install`.
 
@@ -66,7 +66,7 @@ The TV must be in **Developer Mode** first. This is LG's process, not ours:
 > reloading it — `ares-install` over a running instance succeeds but the OLD
 > code stays on screen until the app is closed. `npm run ipk:install` handles
 > this (close → install → launch); doing it by hand, run
-> `npx ares-launch --close com.wattinventive.weblink` before installing.
+> `npx ares-launch --close com.wattinventive.nexgenhotels` before installing.
 
 ### Registering a device, changing its IP, adding another TV
 
@@ -145,7 +145,7 @@ packaging is the same, the distribution channel is not.
 ### Debugging on the TV
 
 ```powershell
-npx ares-inspect --app com.wattinventive.weblink --open
+npx ares-inspect --app com.wattinventive.nexgenhotels --open
 ```
 
 A startup crash also paints its stack trace directly onto the screen — see the

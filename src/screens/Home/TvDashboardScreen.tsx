@@ -39,6 +39,7 @@ import {CurtainControl} from './components/CurtainControl';
 import {useAuth} from '../../store/AuthContext';
 import {useTvPresence} from '../../store/TvPresenceContext';
 import {getApiErrorMessage} from '../../utils/errorHandler';
+import {SHOW_COMING_SOON} from '../../utils/responsive';
 import type {RoomDevice} from '../../models/device.model';
 import type {HomeStackParamList} from '../../navigation/types';
 
@@ -364,7 +365,9 @@ export function TvDashboardScreen({navigation}: Props) {
               <Text style={{color: DS.text2, fontSize: 13, marginTop: 6, fontFamily: FONT}}>
                 We are at your service
               </Text>
-              {/* spec PRIMARY BUTTON: gold bg, white text, 56 → 37 high */}
+              {/* spec PRIMARY BUTTON: gold bg, white text, 56 → 37 high.
+                  Still a placeholder, so not on LG (see SHOW_COMING_SOON). */}
+              {SHOW_COMING_SOON ? (
               <TvPressable
                 onPress={comingSoon}
                 label="Explore hotel (coming soon)"
@@ -391,6 +394,7 @@ export function TvDashboardScreen({navigation}: Props) {
                 </Text>
                 <Icon name="chevron-forward" size={14} color={DS.text} style={{marginLeft: 6}} />
               </TvPressable>
+              ) : null}
             </View>
           </View>
 
@@ -467,7 +471,7 @@ export function TvDashboardScreen({navigation}: Props) {
                 icon="sunny-outline"
                 onPress={() => navigation.navigate('MyDay')}
               />
-            ) : (
+            ) : SHOW_COMING_SOON ? (
               <Tile
                 title="Live TV"
                 subtitle="Watch your favourite"
@@ -475,6 +479,15 @@ export function TvDashboardScreen({navigation}: Props) {
                 icon="tv-outline"
                 soon
                 onPress={comingSoon}
+              />
+            ) : (
+              // LG: a real feature keeps the 4 × 2 grid whole instead of a
+              // placeholder its store QA would fail (see SHOW_COMING_SOON).
+              <Tile
+                title="Feedback"
+                subtitle="Tell us about your stay"
+                icon="chatbubble-ellipses-outline"
+                onPress={() => navigation.navigate('Feedback')}
               />
             )}
           </View>

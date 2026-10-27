@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {Animated, Platform, Text, View} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import {onlineManager} from '@tanstack/react-query';
 // Straight from the leaf module, not the `../TvGlass` barrel: that barrel also
 // re-exports TvChrome, which imports `toast` from here — an import cycle the
 // bundler would have to break at runtime. TvGlass.tsx itself imports nothing
@@ -8,7 +9,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import {DS, FONT, GLASS_BLUR, GlassSheen, SHADOW} from '../TvGlass/TvGlass';
 import {useTheme} from '../../theme';
 import {IS_TV} from '../../utils/responsive';
-import {subscribeToToasts, type ToastItem} from './toast';
+import {subscribeToToasts, toast, type ToastItem} from './toast';
 
 const MAX_VISIBLE = 3;
 
@@ -38,7 +39,52 @@ const TV_ACCENT: Record<ToastItem['kind'], {solid: string; tint: string; edge: s
   info: {solid: DS.gold, tint: 'rgba(212,180,131,0.20)', edge: 'rgba(212,180,131,0.55)'},
 };
 
-function ToastCard({item, onDone}: {item: ToastItem; onDone: (id: number) => void}) {
+/**
+ * The TV's "no internet" notice. A toast-shaped card, but it stays up for as
+ * long as the network is gone: a timed toast would leave the guest staring at
+ * error states with nothing saying why once it faded.
+ */
+const OFFLINE_NOTICE: ToastItem = {
+  id: -1,
+  kind: 'error',
+  message: "No internet connection. Check the TV's network — the app reconnects by itself.",
+  duration: 0,
+};
+
+/**
+ * Online/offline as React Query hears it (window online/offline in the web
+ * builds; native never goes offline here). TV only — a phone has its own
+ * system indicator. Says "Back online" when the network returns, because the
+ * screens reload on their own and the guest should know that is why.
+ */
+function useTvOffline(): boolean {
+  const [offline, setOffline] = useState(() => IS_TV && !onlineManager.isOnline());
+  useEffect(() => {
+    if (!IS_TV) {
+      return;
+    }
+    return onlineManager.subscribe(online => {
+      setOffline(!online);
+      if (online) {
+        toast.success('Back online.');
+      }
+    });
+  }, []);
+  return offline;
+}
+
+function ToastCard({
+  item,
+  onDone,
+  persistent = false,
+  icon,
+}: {
+  item: ToastItem;
+  onDone?: (id: number) => void;
+  /** Stays until unmounted instead of fading after `item.duration`. */
+  persistent?: boolean;
+  icon?: string;
+}) {
   const {theme, scheme} = useTheme();
   // Core Animated only — reanimated does not initialise reliably in the
   // webpack/webOS bundle (see Skeleton.tsx).
@@ -51,13 +97,16 @@ function ToastCard({item, onDone}: {item: ToastItem; onDone: (id: number) => voi
       Animated.timing(opacity, {toValue: 1, duration: 180, useNativeDriver: useNative}),
       Animated.timing(translate, {toValue: 0, duration: 180, useNativeDriver: useNative}),
     ]).start();
+    if (persistent) {
+      return;
+    }
     const timer = setTimeout(() => {
       Animated.timing(opacity, {toValue: 0, duration: 220, useNativeDriver: useNative}).start(
-        () => onDone(item.id),
+        () => onDone?.(item.id),
       );
     }, item.duration);
     return () => clearTimeout(timer);
-  }, [item, opacity, translate, onDone]);
+  }, [item, opacity, translate, onDone, persistent]);
 
   const tv = TV_ACCENT[item.kind];
   const accent = IS_TV
@@ -140,10 +189,10 @@ function ToastCard({item, onDone}: {item: ToastItem; onDone: (id: number) => voi
             borderWidth: 1,
             borderColor: tv.edge,
           }}>
-          <Icon name={KIND_ICON[item.kind]} size={17} color={accent} />
+          <Icon name={icon ?? KIND_ICON[item.kind]} size={17} color={accent} />
         </View>
       ) : (
-        <Icon name={KIND_ICON[item.kind]} size={20} color={accent} />
+        <Icon name={icon ?? KIND_ICON[item.kind]} size={20} color={accent} />
       )}
       <Text
         style={{
@@ -168,6 +217,7 @@ function ToastCard({item, onDone}: {item: ToastItem; onDone: (id: number) => voi
  */
 export function ToastHost() {
   const [items, setItems] = useState<ToastItem[]>([]);
+  const offline = useTvOffline();
 
   useEffect(
     () =>
@@ -182,7 +232,7 @@ export function ToastHost() {
     [],
   );
 
-  if (items.length === 0) {
+  if (items.length === 0 && !offline) {
     return null;
   }
 
@@ -200,6 +250,7 @@ export function ToastHost() {
         right: 20,
         zIndex: 1000,
       }}>
+      {offline ? <ToastCard item={OFFLINE_NOTICE} persistent icon="cloud-offline-outline" /> : null}
       {items.map(item => (
         <ToastCard key={item.id} item={item} onDone={remove} />
       ))}
