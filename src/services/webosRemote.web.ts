@@ -229,11 +229,25 @@ function firstScreenControl(): HTMLElement | undefined {
   }
   // Never land on something that changes the room: the press that opened the
   // screen can repeat (a held OK), and on Climate the first control is the AC
-  // power switch. Fall back to Back itself when every control is one (Climate).
+  // power switch. Nor on a text field: focusing one opens the TV's on-screen
+  // keyboard (Android TV does it at once), which covers half of Help Desk before
+  // the guest chose to type. Fall back to Back itself when nothing else is left.
   const safe = list
     .slice(back + 1)
-    .find(el => !ROOM_CONTROL_LABEL.test(el.getAttribute('aria-label') ?? ''));
+    .find(el => !ROOM_CONTROL_LABEL.test(el.getAttribute('aria-label') ?? '') && !isTypingField(el));
   return safe ?? list[back];
+}
+
+/** A field that takes typed text — focusing it brings up the on-screen keyboard. */
+function isTypingField(el: Element): boolean {
+  if (el.tagName === 'TEXTAREA') {
+    return true;
+  }
+  if (el.tagName !== 'INPUT') {
+    return false;
+  }
+  const type = (el as HTMLInputElement).type;
+  return !['button', 'submit', 'checkbox', 'radio', 'range', 'color', 'file'].includes(type);
 }
 
 /**
