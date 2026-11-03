@@ -1,0 +1,15 @@
+[versions]
+agp = "9.3.3"
+# Newest releases that still fit compileSdk 36.1 and minSdk 23 (Android 6 TVs):
+# core 1.19+ needs compileSdk 37; webkit 1.16+ needs minSdk 24.
+activityKtx = "1.13.0"
+coreKtx = "1.18.0"
+webkit = "1.15.0"
+
+[libraries]
+androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activityKtx" }
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }

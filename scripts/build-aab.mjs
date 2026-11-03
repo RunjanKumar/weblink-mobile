@@ -23,6 +23,7 @@
  *
  * Env:
  *   ANDROID_HOME  Android SDK (adb, and Gradle's sdk.dir if local.properties is absent).
+ *   JAVA_HOME     used only when Android Studio's bundled JDK (JBR) is not found.
  */
 import {spawnSync} from 'node:child_process';
 import fs from 'node:fs';
@@ -75,8 +76,8 @@ function spawn(cmd, args, options = {}) {
 }
 
 /** Runs a command with live output; fails on a non-zero exit. */
-function run(cmd, args, what, cwd) {
-  const r = spawn(cmd, args, {stdio: 'inherit', cwd});
+function run(cmd, args, what, cwd, env) {
+  const r = spawn(cmd, args, {stdio: 'inherit', cwd, env: env ? {...process.env, ...env} : undefined});
   if (r.status !== 0) {
     fail(`${what} failed with exit code ${r.status}`);
   }
@@ -101,6 +102,23 @@ function findAdb() {
   }
   const adb = path.join(sdk, 'platform-tools', isWindows ? 'adb.exe' : 'adb');
   return fs.existsSync(adb) ? adb : undefined;
+}
+
+/**
+ * The JDK Gradle runs on. androidtv/ pins its daemon to Java 21
+ * (gradle/gradle-daemon-jvm.properties); Android Studio bundles exactly that as
+ * its JBR, and Android Studio itself builds with it — so prefer it over a
+ * system JAVA_HOME that may be older (17 on the Windows laptop).
+ */
+function findJdk() {
+  const candidates = isWindows
+    ? [
+        'C:\\Program Files\\Android\\Android Studio\\jbr',
+        path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Android Studio', 'jbr'),
+      ]
+    : ['/Applications/Android Studio.app/Contents/jbr/Contents/Home'];
+  const jbr = candidates.find(p => fs.existsSync(path.join(p, 'bin', isWindows ? 'java.exe' : 'java')));
+  return jbr || process.env.JAVA_HOME;
 }
 
 function copyDir(from, to) {
@@ -129,6 +147,12 @@ if (!adb) {
   fail('Android SDK not found. Set ANDROID_HOME to the SDK folder (Android Studio > Settings > Android SDK).');
 }
 ok(`adb: ${adb}`);
+
+const jdk = findJdk();
+if (!jdk) {
+  fail('No JDK found. Install Android Studio (its bundled JBR is used), or set JAVA_HOME to a Java 21 JDK.');
+}
+ok(`JDK: ${jdk}`);
 
 const gradleFile = fs.readFileSync(path.join(wrapperDir, 'app', 'build.gradle.kts'), 'utf8');
 const versionName = /versionName\s*=\s*"([^"]+)"/.exec(gradleFile)?.[1];
@@ -178,7 +202,7 @@ ok('androidtv/app/src/main/assets/www/');
 // -- 4. Gradle ---------------------------------------------------------------
 const tasks = debug ? [':app:assembleDebug'] : [':app:bundleRelease', ':app:assembleRelease'];
 step(`Gradle ${tasks.join(' ')} ...`);
-run(gradlew, [...tasks, '--console=plain'], 'Gradle', wrapperDir);
+run(gradlew, [...tasks, '--console=plain'], 'Gradle', wrapperDir, {JAVA_HOME: jdk});
 
 const outputs = path.join(wrapperDir, 'app', 'build', 'outputs');
 const builtApk = debug

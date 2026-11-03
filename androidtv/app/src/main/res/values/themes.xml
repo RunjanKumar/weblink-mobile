@@ -1,0 +1,9 @@
+<resources>
+    <!--
+      Full screen, no action bar. The window background is the web app's boot
+      background (web/index.html), so launch never flashes white.
+    -->
+    <style name="Theme.NexgenHotels" parent="@android:style/Theme.Material.Light.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@color/boot_background</item>
+    </style>
+</resources>

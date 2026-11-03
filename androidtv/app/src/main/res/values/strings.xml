@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Nexgen Hotels</string>
+    <string name="update_webview">Please update Android System WebView to use Nexgen Hotels.</string>
+</resources>

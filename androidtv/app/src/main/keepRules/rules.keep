@@ -1,0 +1,5 @@
+# R8 is off for this app (app/build.gradle.kts), but if it is ever turned on:
+# the web app calls these by name through window.NexgenTV.
+-keepclassmembers class com.wattinventive.nexgenhotels.TvBridge {
+    @android.webkit.JavascriptInterface public *;
+}
