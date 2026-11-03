@@ -22,15 +22,29 @@ import {logger} from './logger';
 
 export type TvPlatformName = 'tizen' | 'webos' | 'androidtv' | 'web' | 'native';
 
+/**
+ * What the Home button opens (androidtv/ HotelMode.kt):
+ *  - self:    this app — Hotel mode is fully set up
+ *  - chooser: Android asks which Home to use — "Set as Home app" works
+ *  - default: another launcher is the default; clear its defaults first
+ *  - locked:  the TV's own launcher always wins (Google TV) — power-on only
+ */
+export type HomeChoice = 'self' | 'chooser' | 'default' | 'locked';
+
 /** Android TV Hotel mode, as the wrapper sees it. */
 export interface HotelModeStatus {
   /** The app is set up as the TV's home screen + starts on power-on. */
   on: boolean;
   /** The TV's default Home app is this app (staff picked it in the chooser). */
   defaultHome: boolean;
+  home: HomeChoice;
+  /** The launcher Home opens instead of this app, for "default" / "locked". */
+  homeLabel?: string;
   /** "Display over other apps" — lets the boot receiver open the app on Android 10+. */
   canDrawOverlays: boolean;
 }
+
+const HOME_CHOICES: HomeChoice[] = ['self', 'chooser', 'default', 'locked'];
 
 export type Probe<T> = {ok: true; value: T} | {ok: false; error: string};
 
@@ -269,9 +283,17 @@ export function hotelModeStatus(): HotelModeStatus | null {
   }
   try {
     const raw = JSON.parse(bridge.hotelModeStatus()) as Partial<HotelModeStatus>;
+    const defaultHome = raw.defaultHome === true;
     return {
       on: raw.on === true,
-      defaultHome: raw.defaultHome === true,
+      defaultHome,
+      // An APK older than this field: fall back to the chooser path it had.
+      home: HOME_CHOICES.includes(raw.home as HomeChoice)
+        ? (raw.home as HomeChoice)
+        : defaultHome
+          ? 'self'
+          : 'chooser',
+      homeLabel: raw.homeLabel || undefined,
       canDrawOverlays: raw.canDrawOverlays === true,
     };
   } catch (e) {

@@ -11,7 +11,12 @@ import {
   TvBackdrop,
   TvClock,
 } from '../../components/TvGlass';
-import {hotelModeStatus, openHomeChooser, type HotelModeStatus} from '../../services/tvPlatform';
+import {
+  hotelModeStatus,
+  openHomeChooser,
+  openOverlaySettings,
+  type HotelModeStatus,
+} from '../../services/tvPlatform';
 import {useTvPresence} from '../../store/TvPresenceContext';
 import {IS_ANDROID_TV_APP} from '../../utils/responsive';
 
@@ -59,10 +64,15 @@ export function TvGateScreen() {
  * TV still has to be told to use this app as its Home — Android only lets that
  * happen on the TV. The empty-room Welcome screen is where staff set a TV up,
  * so the step is offered here (it is also under Settings → Device Info), and
- * disappears once done.
+ * disappears once done. What the step is depends on the TV (HomeChoice):
+ *  - chooser: "Set as Home app" → Nexgen Hotels → Always
+ *  - default: another launcher is the default — clear it first
+ *  - locked:  Google TV never lets another Home in; the app can only open on
+ *             power-on, which on Android 10+ needs "Display over other apps"
  */
 function HotelModeSetup({hotelMode}: {hotelMode?: boolean}) {
   const [status, setStatus] = useState<HotelModeStatus | null>(hotelModeStatus);
+  const [overlayHint, setOverlayHint] = useState(false);
 
   // Re-read when the admin switch changes and when the TV comes back from the
   // Home chooser.
@@ -76,9 +86,15 @@ function HotelModeSetup({hotelMode}: {hotelMode?: boolean}) {
     return () => sub.remove();
   }, []);
 
-  if (!status?.on || status.defaultHome) {
+  const step = status?.on ? setupStep(status) : null;
+  if (!step) {
     return null;
   }
+  const allowOverlay = () => {
+    if (!openOverlaySettings()) {
+      setOverlayHint(true);
+    }
+  };
   return (
     <GlassPanel
       style={{
@@ -89,24 +105,70 @@ function HotelModeSetup({hotelMode}: {hotelMode?: boolean}) {
         flexDirection: 'row',
         alignItems: 'center',
       }}>
-      <Icon name="home-outline" size={22} color={DS.gold} />
-      <View style={{flex: 1, marginLeft: 14, marginRight: 14}}>
+      <Icon name={step.icon} size={22} color={DS.gold} />
+      <View style={{flex: 1, marginLeft: 14, marginRight: step.action ? 14 : 0}}>
         <Text style={{color: DS.text, fontSize: 13, fontWeight: '600', fontFamily: FONT}}>
-          Staff: finish Hotel mode
+          {step.title}
         </Text>
         <Text style={{color: DS.text2, fontSize: 11, lineHeight: 16, marginTop: 3, fontFamily: FONT}}>
-          Choose Nexgen Hotels, then “Always”.
+          {overlayHint ? `This TV has no such setting. From a computer: ${OVERLAY_ADB}` : step.detail}
         </Text>
       </View>
-      <GlassButton
-        label="Set as Home app"
-        icon="home-outline"
-        onPress={openHomeChooser}
-        height={40}
-        hasTVPreferredFocus
-      />
+      {step.action === 'home' ? (
+        <GlassButton
+          label="Set as Home app"
+          icon="home-outline"
+          onPress={openHomeChooser}
+          height={40}
+          hasTVPreferredFocus
+        />
+      ) : step.action === 'overlay' && !overlayHint ? (
+        <GlassButton label="Allow" icon="layers-outline" onPress={allowOverlay} height={40} hasTVPreferredFocus />
+      ) : null}
     </GlassPanel>
   );
+}
+
+/** Granting "Display over other apps" by hand, for TVs without that settings screen. */
+const OVERLAY_ADB ='adb shell appops set com.wattinventive.nexgenhotels SYSTEM_ALERT_WINDOW allow';
+
+/** The one thing staff still have to do on this TV for Hotel mode, or null when it is set up. */
+function setupStep(status: HotelModeStatus): {
+  icon: string;
+  title: string;
+  detail: string;
+  action: 'home' | 'overlay' | null;
+} | null {
+  const launcher = status.homeLabel || 'Another app';
+  switch (status.home) {
+    case 'chooser':
+      return {
+        icon: 'home-outline',
+        title: 'Staff: finish Hotel mode',
+        detail: 'Choose Nexgen Hotels, then “Always”.',
+        action: 'home',
+      };
+    case 'default':
+      return {
+        icon: 'home-outline',
+        title: 'Staff: finish Hotel mode',
+        detail: `${launcher} is this TV's Home app. In the TV's Settings → Apps → ${launcher}, choose “Clear defaults”, then come back here.`,
+        action: null,
+      };
+    case 'locked':
+      // Nothing to do on the TV once the app may open itself after power-on.
+      return status.canDrawOverlays
+        ? null
+        : {
+            icon: 'power-outline',
+            title: 'Staff: let the app open on power-on',
+            detail:
+              'This TV always keeps its own Home screen. Allow “Display over other apps”, and turn off Quick start in the TV’s settings.',
+            action: 'overlay',
+          };
+    default:
+      return null;
+  }
 }
 
 function PairingPanel({code}: {code: string}) {

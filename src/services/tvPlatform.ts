@@ -9,12 +9,18 @@ import {Dimensions, Platform} from 'react-native';
 
 export type TvPlatformName = 'tizen' | 'webos' | 'androidtv' | 'web' | 'native';
 
+/** What the Home button opens — see tvPlatform.web.ts. */
+export type HomeChoice = 'self' | 'chooser' | 'default' | 'locked';
+
 /** Android TV Hotel mode, as the wrapper sees it. */
 export interface HotelModeStatus {
   /** The app is set up as the TV's home screen + starts on power-on. */
   on: boolean;
   /** The TV's default Home app is this app (staff picked it in the chooser). */
   defaultHome: boolean;
+  home: HomeChoice;
+  /** The launcher Home opens instead of this app, for "default" / "locked". */
+  homeLabel?: string;
   /** "Display over other apps" — lets the boot receiver open the app on Android 10+. */
   canDrawOverlays: boolean;
 }

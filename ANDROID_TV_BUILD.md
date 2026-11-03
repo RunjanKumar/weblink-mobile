@@ -150,13 +150,55 @@ library's limits in its AAR: `minSdkVersion` in `AndroidManifest.xml`,
   page-size rules pass by construction. Keep it that way.
 - **No backup / device transfer** of app data: the pairing token must stay on
   the TV it belongs to.
+- **Hotel mode: certified TVs never offer a Home chooser.** Google's own TV
+  launchers declare HOME at priority 2 — both Google TV
+  (`com.google.android.apps.tv.launcherx`) and Android TV
+  (`com.google.android.tvlauncher`, checked on Android 9 and 14) — and our
+  alias is 0, so Home always opens theirs. `HotelMode.homeChoice()` reports
+  this as `locked`; `chooser` / `default` only happen on TVs whose vendor
+  launcher has priority 0 (some AOSP sets). Two levels for a hotel:
+  1. **Power-on only** (no adb): Hotel mode on + "Display over other apps"
+     allowed (the Welcome screen card opens that setting). BootReceiver opens
+     the app after a power-on (`BAL_ALLOW_SAW_PERMISSION`; verified on
+     Android 14 and 16). Home on the remote still opens the TV's launcher.
+  2. **Full home screen** (adb at install): also disable the stock launcher —
+     `adb shell pm disable-user --user 0 com.google.android.tvlauncher`
+     (Google TV: `com.google.android.apps.tv.launcherx`). Then Home opens the
+     app, Back at the root stays in it, and boot opens it — no permission
+     needed (verified on Android TV 14). Undo with `adb shell pm enable <pkg>`.
+     Turning Hotel mode off while that launcher is disabled keeps the app as
+     Home (`HotelMode.otherHomeAvailable`) instead of leaving Android's black
+     FallbackHome; Home goes back to the TV within a minute of re-enabling it.
+- **Testing boot with adb:** `adb reboot` is not a clean shutdown, and app-op
+  changes (`appops set …`) are written to disk lazily, so a permission granted
+  just before is lost. Run `adb shell appops write-settings` first, and reboot
+  with `adb shell svc power reboot`.
+- **Emulator crashes on this laptop** (qemu access violation; AMD Radeon Pro
+  5300M under Boot Camp). Start it with `-gpu swiftshader_indirect` — that
+  covers normal screens, but opening Razorpay checkout (and once, the
+  on-screen keyboard) still crashes it in every GPU mode tried (host,
+  swiftshader, guest, `-feature -Vulkan`). Test payments on a real TV.
+- **No keyboard on arrival.** Focus seeding skips text fields, so a screen
+  like Help Desk does not open the on-screen keyboard until the guest moves to
+  the message box.
 
 ---
 
 ## Not yet done
 
-- Backend: `hotelMode` + `PATCH /v1/tv/devices/:id`, CORS (handoff doc 7.2–7.3).
-- Admin panel Hotel mode switch (7.4).
-- Emulator checklist (handoff doc 11), incl. Hotel mode on the API 28 TV
-  (needs a newer WebView there first).
+- A real Razorpay payment (the emulator crashes on its checkout — see Gotchas).
+  Confirm first whether the dev server's Razorpay key is `rzp_test_`.
+- The `chooser` / `default` Hotel mode cases on a real TV whose launcher
+  allows it (no emulator image has one).
 - Play Console listing assets: 1280×720 TV banner, 1920×1080 screenshots.
+
+Verified on emulators against the dev server (2026-11-03):
+- Google TV 14: pairing, check-in → dashboard, all tiles + Back with focus
+  return, D-pad, OK, offline/online card, checkout → Welcome, reinstall
+  re-pairs without a duplicate, Hotel mode on/off, locked-TV setup card,
+  power-on auto-open.
+- Android TV 14: Hotel mode with the stock launcher disabled (Home, Back,
+  boot), and Hotel mode off without a launcher.
+- Google TV 16 (target 36): power-on auto-open; `window.open` opens an
+  overlay WebView that Back closes; `upi://` and off-site navigation blocked.
+- Android TV 9 (WebView 66): the "update Android System WebView" message.

@@ -88,10 +88,18 @@ function HotelModeInfo() {
           <MetaRow
             icon="home-outline"
             label="Home app"
-            value={status.defaultHome ? 'Nexgen Hotels ✓' : 'Not set'}
-            valueColor={status.defaultHome ? DS.good : DS.danger}
+            value={
+              status.home === 'self'
+                ? 'Nexgen Hotels ✓'
+                : status.home === 'locked'
+                  ? `${status.homeLabel || 'TV launcher'} (fixed by this TV)`
+                  : status.home === 'default'
+                    ? `${status.homeLabel || 'Another app'} is the default`
+                    : 'Not set'
+            }
+            valueColor={status.home === 'self' ? DS.good : status.home === 'locked' ? undefined : DS.danger}
           />
-          {status.defaultHome ? null : (
+          {status.home === 'chooser' ? (
             <GlassButton
               label="Set as Home app"
               icon="home-outline"
@@ -99,7 +107,20 @@ function HotelModeInfo() {
               height={40}
               style={{marginVertical: 8}}
             />
-          )}
+          ) : status.home === 'default' || status.home === 'locked' ? (
+            <Text
+              style={{
+                color: DS.text2,
+                fontSize: 10,
+                lineHeight: 15,
+                marginVertical: 8,
+                fontFamily: FONT,
+              }}>
+              {status.home === 'default'
+                ? `In the TV's Settings → Apps → ${status.homeLabel || 'that app'}, choose “Clear defaults”, then come back and press “Set as Home app”.`
+                : 'This TV (Google TV) never lets another app be its Home. Nexgen Hotels opens on power-on instead: allow “Display over other apps” below and turn off Quick start / Instant-on in the TV’s settings.'}
+            </Text>
+          ) : null}
           <Divider />
           <MetaRow
             icon="layers-outline"
