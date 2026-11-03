@@ -37,6 +37,8 @@ interface TvPresenceValue {
   pairingCode: string | null;
   hotelName?: string;
   roomNumber?: string;
+  /** Android TV: staff turned Hotel mode on for this TV in the admin panel. */
+  hotelMode?: boolean;
 }
 
 const PAIR_POLL_MS = 3_000;
@@ -65,7 +67,9 @@ function RoomTvPresence({children}: {children: React.ReactNode}) {
   );
   const [phase, setPhase] = useState<TvPhase>('starting');
   const [pairingCode, setPairingCode] = useState<string | null>(null);
-  const [room, setRoom] = useState<{hotelName?: string; roomNumber?: string}>({});
+  const [room, setRoom] = useState<{hotelName?: string; roomNumber?: string; hotelMode?: boolean}>(
+    {},
+  );
 
   // Async callbacks read the latest auth state through a ref, not a stale closure.
   const authRef = useRef({status, token: session?.token});
@@ -180,9 +184,15 @@ function RoomTvPresence({children}: {children: React.ReactNode}) {
       if (!state) {
         throw new Error('Empty TV state');
       }
-      setRoom({hotelName: state.hotelName, roomNumber: state.roomNumber});
       // The admin panel's per-TV switch; a no-op outside the Android TV APK.
+      // Applied before the state update so screens that react to `hotelMode`
+      // read the native status after it changed.
       setHotelMode(state.hotelMode === true);
+      setRoom({
+        hotelName: state.hotelName,
+        roomNumber: state.roomNumber,
+        hotelMode: state.hotelMode === true,
+      });
 
       if (state.mode === 'idle') {
         setPhase('idle');

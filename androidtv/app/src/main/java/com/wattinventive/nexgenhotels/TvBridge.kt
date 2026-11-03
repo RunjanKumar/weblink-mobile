@@ -39,9 +39,13 @@ class TvBridge(private val activity: MainActivity) {
         }
     }
 
-    /** Driven by the admin panel's per-TV switch (via /v1/tv/state). */
+    /**
+     * Driven by the admin panel's per-TV switch (via /v1/tv/state). Applied on
+     * this thread, not posted to the UI thread: a hotelModeStatus() right after
+     * must already see it. SharedPreferences and PackageManager are thread-safe.
+     */
     @JavascriptInterface
-    fun setHotelMode(on: Boolean) = activity.runOnUiThread { HotelMode.set(activity, on) }
+    fun setHotelMode(on: Boolean) = HotelMode.set(activity, on)
 
     /** JSON: {"on", "defaultHome", "canDrawOverlays"}. */
     @JavascriptInterface

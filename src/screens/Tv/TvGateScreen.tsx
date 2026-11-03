@@ -1,25 +1,28 @@
-import React from 'react';
-import {Text, View} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {AppState, Text, View} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {
   CenterState,
   DISPLAY,
   DS,
   FONT,
+  GlassButton,
   GlassPanel,
   TvBackdrop,
   TvClock,
 } from '../../components/TvGlass';
+import {hotelModeStatus, openHomeChooser, type HotelModeStatus} from '../../services/tvPlatform';
 import {useTvPresence} from '../../store/TvPresenceContext';
+import {IS_ANDROID_TV_APP} from '../../utils/responsive';
 
 /**
- * What a Samsung in-room TV shows whenever no guest is signed in — it replaces
+ * What an in-room TV shows whenever no guest is signed in — it replaces
  * the Login screen there (see RootNavigator). Driven entirely by
  * TvPresenceContext: a pairing code until staff pair the TV, then a Welcome
  * screen until a guest checks in, at which point the dashboard takes over.
  */
 export function TvGateScreen() {
-  const {phase, pairingCode, hotelName, roomNumber} = useTvPresence();
+  const {phase, pairingCode, hotelName, roomNumber, hotelMode} = useTvPresence();
 
   return (
     <View style={{flex: 1, backgroundColor: DS.pageBg}}>
@@ -32,7 +35,10 @@ export function TvGateScreen() {
           {phase === 'pairing' && pairingCode ? (
             <PairingPanel code={pairingCode} />
           ) : phase === 'idle' ? (
-            <WelcomePanel hotelName={hotelName} roomNumber={roomNumber} />
+            <>
+              <WelcomePanel hotelName={hotelName} roomNumber={roomNumber} />
+              {IS_ANDROID_TV_APP ? <HotelModeSetup hotelMode={hotelMode} /> : null}
+            </>
           ) : phase === 'offline' ? (
             <CenterState
               icon="cloud-offline-outline"
@@ -45,6 +51,61 @@ export function TvGateScreen() {
         </View>
       </View>
     </View>
+  );
+}
+
+/**
+ * Android TV, for staff: after Hotel mode is switched on in the admin panel the
+ * TV still has to be told to use this app as its Home — Android only lets that
+ * happen on the TV. The empty-room Welcome screen is where staff set a TV up,
+ * so the step is offered here (it is also under Settings → Device Info), and
+ * disappears once done.
+ */
+function HotelModeSetup({hotelMode}: {hotelMode?: boolean}) {
+  const [status, setStatus] = useState<HotelModeStatus | null>(hotelModeStatus);
+
+  // Re-read when the admin switch changes and when the TV comes back from the
+  // Home chooser.
+  useEffect(() => setStatus(hotelModeStatus()), [hotelMode]);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', next => {
+      if (next === 'active') {
+        setStatus(hotelModeStatus());
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
+  if (!status?.on || status.defaultHome) {
+    return null;
+  }
+  return (
+    <GlassPanel
+      style={{
+        width: 560,
+        marginTop: DS.gap,
+        paddingVertical: 18,
+        paddingHorizontal: 24,
+        flexDirection: 'row',
+        alignItems: 'center',
+      }}>
+      <Icon name="home-outline" size={22} color={DS.gold} />
+      <View style={{flex: 1, marginLeft: 14, marginRight: 14}}>
+        <Text style={{color: DS.text, fontSize: 13, fontWeight: '600', fontFamily: FONT}}>
+          Staff: finish Hotel mode
+        </Text>
+        <Text style={{color: DS.text2, fontSize: 11, lineHeight: 16, marginTop: 3, fontFamily: FONT}}>
+          Choose Nexgen Hotels, then “Always”.
+        </Text>
+      </View>
+      <GlassButton
+        label="Set as Home app"
+        icon="home-outline"
+        onPress={openHomeChooser}
+        height={40}
+        hasTVPreferredFocus
+      />
+    </GlassPanel>
   );
 }
 
