@@ -18,6 +18,12 @@ export type TvPairingStatus = {status: 'PENDING'} | {status: 'PAIRED'; deviceTok
 interface TvRoomInfo {
   hotelName?: string;
   roomNumber?: string;
+  /**
+   * Android TV only: staff turned on Hotel mode for this TV in the admin panel
+   * (the app becomes the TV's home screen and opens on power-on). Absent from
+   * older backends — treat that as off.
+   */
+  hotelMode?: boolean;
 }
 
 export type TvState =

@@ -41,6 +41,17 @@ dist-webos/
 web-build-tizen/
 dist-tizen/
 
+# Android TV wrapper build output (regenerate with `npm run aab`)
+web-build-androidtv/
+dist-androidtv/
+androidtv/app/src/main/assets/www/
+androidtv/keystore.properties
+*.jks
+androidtv/.gradle/
+androidtv/build/
+androidtv/app/build/
+androidtv/local.properties
+
 # Env — do not commit real secrets
 .env
 

@@ -23,19 +23,36 @@ function isTizen(): boolean {
   return /tizen/i.test(navigator.userAgent);
 }
 
+/**
+ * True inside the Android TV wrapper APK (androidtv/). Its WebView appends
+ * "NexgenHotelsTV/<version>" to the user agent; nothing else does.
+ */
+function isAndroidTvApp(): boolean {
+  if (Platform.OS !== 'web' || typeof navigator === 'undefined') {
+    return false;
+  }
+  return /NexgenHotelsTV\//.test(navigator.userAgent);
+}
+
 export const IS_WEBOS: boolean = isWebOS();
 export const IS_TIZEN: boolean = isTizen();
-
-/** True on Android TV / tvOS / LG webOS / Samsung Tizen. Cheap constant for TV-only branches. */
-export const IS_TV: boolean = Platform.isTV === true || IS_WEBOS || IS_TIZEN;
+export const IS_ANDROID_TV_APP: boolean = isAndroidTvApp();
 
 /**
- * True in the web (.ipk / webOS, .wgt / Tizen) build, false in every Android .apk.
+ * True on Android TV (wrapper APK or native) / tvOS / LG webOS / Samsung Tizen.
+ * Cheap constant for TV-only branches.
+ */
+export const IS_TV: boolean = Platform.isTV === true || IS_WEBOS || IS_TIZEN || IS_ANDROID_TV_APP;
+
+/**
+ * True in the web bundle — the .ipk (webOS), the .wgt (Tizen) and the Android
+ * TV wrapper APK, which runs that same bundle in a WebView. False only in the
+ * React Native .apk (android/), phone or TV.
  *
- * Distinct from IS_TV on purpose: IS_TV is also true for an Android TV APK, so
- * it cannot express "the TV app follows a different flow than the phone app".
- * Use this only for the flow differences the client asked for on webOS; keep
- * using IS_TV for ten-foot sizing and focus behaviour.
+ * Distinct from IS_TV on purpose: IS_TV is also true for the native Android TV
+ * APK, so it cannot express "the TV app follows a different flow than the phone
+ * app". Use this only for the flow differences the client asked for on webOS;
+ * keep using IS_TV for ten-foot sizing and focus behaviour.
  */
 export const IS_WEB_BUILD: boolean = Platform.OS === 'web';
 
@@ -44,9 +61,10 @@ export const IS_WEB_BUILD: boolean = Platform.OS === 'web';
  * Explore Hotel, Live TV). Not on LG: the webOS build ships through the LG
  * Content Store, whose QA fails any button that does nothing ("all UI buttons
  * work properly", self-check 1.4) — and LG TVs have no Google Cast at all.
- * Samsung and Android TV keep them for the client's presentation.
+ * Not in the Android TV APK either, for the same reason: Google Play's TV
+ * review. Samsung keeps them for the client's presentation.
  */
-export const SHOW_COMING_SOON: boolean = !IS_WEBOS;
+export const SHOW_COMING_SOON: boolean = !IS_WEBOS && !IS_ANDROID_TV_APP;
 
 export type DeviceType = 'phone' | 'tablet' | 'tv';
 

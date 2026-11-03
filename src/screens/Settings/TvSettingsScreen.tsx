@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {ScrollView, Text, View} from 'react-native';
+import {AppState, ScrollView, Text, View} from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
@@ -19,7 +19,16 @@ import {useTheme} from '../../theme';
 import {APP_VERSION, config} from '../../constants/config';
 import {getDisplayName} from '../../models/user.model';
 import type {HomeStackParamList} from '../../navigation/types';
-import {getDiagnostics, platform, platformLabel, type TvDiagnostics} from '../../services/tvPlatform';
+import {
+  getDiagnostics,
+  hotelModeStatus,
+  openHomeChooser,
+  openOverlaySettings,
+  platform,
+  platformLabel,
+  type HotelModeStatus,
+  type TvDiagnostics,
+} from '../../services/tvPlatform';
 import {useTvPresence} from '../../store/TvPresenceContext';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'Settings'>;
@@ -28,6 +37,105 @@ type Props = NativeStackScreenProps<HomeStackParamList, 'Settings'>;
 const KEY_APPS = /netflix|youtube|prime|disney|hotstar|jio|zee5|sonyliv|apple|spotify/i;
 
 const Divider = () => <View style={{height: 1, backgroundColor: DS.divider}} />;
+
+/** Granting "Display over other apps" by hand, for TVs without that settings screen. */
+const OVERLAY_ADB =
+  'adb shell appops set com.wattinventive.nexgenhotels SYSTEM_ALERT_WINDOW allow';
+
+/**
+ * Android TV only: the state of Hotel mode on this TV, and the one step staff
+ * finish by hand after switching it on in the admin panel — picking this app as
+ * the TV's Home. The app never opens the Home chooser by itself: on a TV that
+ * already has a default Home the "chooser" would just open the stock launcher
+ * and the guest would watch the app vanish.
+ */
+function HotelModeInfo() {
+  const [status, setStatus] = useState<HotelModeStatus | null>(hotelModeStatus);
+  const [overlayHint, setOverlayHint] = useState(false);
+
+  // Coming back from the Home chooser / Android settings: read the result.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', next => {
+      if (next === 'active') {
+        setStatus(hotelModeStatus());
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
+  if (!status) {
+    return null;
+  }
+
+  const onOverlay = () => {
+    if (!openOverlaySettings()) {
+      setOverlayHint(true);
+    }
+  };
+
+  return (
+    <>
+      <Divider />
+      <MetaRow
+        icon="business-outline"
+        label="Hotel mode"
+        value={status.on ? 'On' : 'Off (set in the admin panel)'}
+        valueColor={status.on ? DS.good : undefined}
+      />
+      {status.on ? (
+        <>
+          <Divider />
+          <MetaRow
+            icon="home-outline"
+            label="Home app"
+            value={status.defaultHome ? 'Nexgen Hotels ✓' : 'Not set'}
+            valueColor={status.defaultHome ? DS.good : DS.danger}
+          />
+          {status.defaultHome ? null : (
+            <GlassButton
+              label="Set as Home app"
+              icon="home-outline"
+              onPress={openHomeChooser}
+              height={40}
+              style={{marginVertical: 8}}
+            />
+          )}
+          <Divider />
+          <MetaRow
+            icon="layers-outline"
+            label="Display over other apps"
+            value={status.canDrawOverlays ? 'Allowed' : 'Not allowed'}
+            valueColor={status.canDrawOverlays ? DS.good : undefined}
+          />
+          {status.canDrawOverlays ? null : (
+            <>
+              <GlassButton
+                label="Allow (opens on power-on, Android 10+)"
+                icon="layers-outline"
+                onPress={onOverlay}
+                height={40}
+                style={{marginVertical: 8}}
+              />
+              {overlayHint ? (
+                <Text
+                  style={{
+                    color: DS.text2,
+                    fontSize: 10,
+                    lineHeight: 15,
+                    marginBottom: 8,
+                    fontFamily: FONT,
+                  }}>
+                  This TV has no such settings screen. Allow it from a computer:{'\n'}
+                  {OVERLAY_ADB}
+                </Text>
+              ) : null}
+            </>
+          )}
+        </>
+      ) : null}
+    </>
+  );
+}
 
 /**
  * What the TV itself reports: DUID, screen, server reachability and, on
@@ -67,7 +175,7 @@ function DeviceInfo() {
       ) : null}
       <MetaRow
         icon="finger-print-outline"
-        label="Device ID (DUID)"
+        label={platform() === 'androidtv' ? 'Device ID (ANDROID_ID)' : 'Device ID (DUID)'}
         value={diag.deviceId.ok ? diag.deviceId.value : `Unavailable: ${diag.deviceId.error}`}
       />
       <Divider />
@@ -86,6 +194,7 @@ function DeviceInfo() {
         value={reach(diag.socketReachable)}
         valueColor={diag.socketReachable ? DS.good : DS.danger}
       />
+      {platform() === 'androidtv' ? <HotelModeInfo /> : null}
       {platform() === 'tizen' ? (
         <>
           <Divider />

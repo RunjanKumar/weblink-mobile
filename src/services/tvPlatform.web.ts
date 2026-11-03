@@ -1,6 +1,6 @@
 /**
  * TV platform services for the web builds (Samsung Tizen .wgt, LG webOS .ipk,
- * desktop browser).
+ * Android TV wrapper APK, desktop browser).
  *
  * Mirrors `tvPlatform.ts` — same exports, same types; keep the two in sync.
  *
@@ -8,15 +8,29 @@
  *  - `tizen`   (Tizen web runtime): application list/launch, systeminfo, tvwindow
  *  - `webapis` (Samsung product API, loaded by the `$WEBAPIS/webapis/webapis.js`
  *              script that only the Tizen build's index.html includes): DUID
- * Each needs a privilege in `tizen/config.xml`. Neither exists on webOS or in a
- * desktop browser, so every call checks for its global and never throws — the
- * Settings screen shows what failed instead of the app crashing.
+ * Each needs a privilege in `tizen/config.xml`.
+ *
+ * The Android TV wrapper injects one global, `NexgenTV` (androidtv/ TvBridge.kt):
+ * ANDROID_ID, the TV's make/model, root Back and Hotel mode.
+ *
+ * None of these exists everywhere, so every call checks for its global and never
+ * throws — the Settings screen shows what failed instead of the app crashing.
  */
 import {config} from '../constants/config';
-import {IS_TIZEN, IS_WEBOS} from '../utils/responsive';
+import {IS_ANDROID_TV_APP, IS_TIZEN, IS_WEBOS} from '../utils/responsive';
 import {logger} from './logger';
 
-export type TvPlatformName = 'tizen' | 'webos' | 'web' | 'native';
+export type TvPlatformName = 'tizen' | 'webos' | 'androidtv' | 'web' | 'native';
+
+/** Android TV Hotel mode, as the wrapper sees it. */
+export interface HotelModeStatus {
+  /** The app is set up as the TV's home screen + starts on power-on. */
+  on: boolean;
+  /** The TV's default Home app is this app (staff picked it in the chooser). */
+  defaultHome: boolean;
+  /** "Display over other apps" — lets the boot receiver open the app on Android 10+. */
+  canDrawOverlays: boolean;
+}
 
 export type Probe<T> = {ok: true; value: T} | {ok: false; error: string};
 
@@ -75,6 +89,22 @@ interface WebApis {
   productinfo?: {getDuid(): string};
 }
 
+/** `window.NexgenTV` — androidtv/app/src/main/java/.../TvBridge.kt. */
+interface NexgenTvBridge {
+  deviceId(): string;
+  deviceModel(): string;
+  rootBack(): void;
+  setHotelMode(on: boolean): void;
+  /** JSON-encoded HotelModeStatus. */
+  hotelModeStatus(): string;
+  openHomeChooser(): void;
+  /** False when the TV has no "Display over other apps" settings screen. */
+  openOverlaySettings(): boolean;
+}
+
+const androidTv = (): NexgenTvBridge | undefined =>
+  (window as unknown as {NexgenTV?: NexgenTvBridge}).NexgenTV;
+
 const tizenApi = (): TizenApi | undefined => (window as unknown as {tizen?: TizenApi}).tizen;
 
 const webApis = (): WebApis | undefined => (window as unknown as {webapis?: WebApis}).webapis;
@@ -122,10 +152,28 @@ export function platform(): TvPlatformName {
   if (IS_TIZEN) {
     return 'tizen';
   }
+  if (IS_ANDROID_TV_APP) {
+    return 'androidtv';
+  }
   return IS_WEBOS ? 'webos' : 'web';
 }
 
-/** Human-readable platform, with the OS version where the UA carries one. */
+/** "TCL 43P635" — the TV's make and model, or '' if the bridge is missing. */
+function androidTvModel(): string {
+  try {
+    return androidTv()?.deviceModel().trim() ?? '';
+  } catch (e) {
+    logger.warn('tvPlatform', 'deviceModel failed', describe(e));
+    return '';
+  }
+}
+
+/**
+ * Human-readable platform, with the OS version where the UA carries one. Sent as
+ * the TV's `model` when it pairs, so staff can tell TVs apart in the admin panel —
+ * and the admin panel offers the Hotel mode switch only to labels that start with
+ * "Android TV".
+ */
 export function platformLabel(): string {
   switch (platform()) {
     case 'tizen': {
@@ -134,6 +182,12 @@ export function platformLabel(): string {
     }
     case 'webos':
       return 'LG webOS';
+    case 'androidtv': {
+      const version = /Android ([\d.]+)/.exec(navigator.userAgent)?.[1];
+      const model = androidTvModel();
+      const label = version ? `Android TV ${version}` : 'Android TV';
+      return model ? `${label} · ${model}` : label;
+    }
     default:
       return 'Web browser';
   }
@@ -155,17 +209,96 @@ function readDuid(): string {
   return duid;
 }
 
-/** Samsung's per-TV unique ID (DUID). Null off Tizen or without the privilege. */
+/** ANDROID_ID from the wrapper, or an error saying what is missing. */
+function readAndroidId(): string {
+  const bridge = androidTv();
+  if (!bridge) {
+    throw new Error('NexgenTV bridge missing');
+  }
+  const id = bridge.deviceId();
+  if (!id) {
+    throw new Error('TV returned an empty ANDROID_ID');
+  }
+  return id;
+}
+
+/**
+ * A stable per-TV ID: Samsung's DUID, or Android TV's ANDROID_ID. The backend
+ * keeps it as the device's `duid` and drops the old record when the same TV
+ * pairs again. Null on LG / in a browser, or if the TV would not say.
+ */
 export function deviceId(): string | null {
   // LG has its own ID API (not wired yet); probing Samsung's here only logs noise.
-  if (!IS_TIZEN) {
+  if (!IS_TIZEN && !IS_ANDROID_TV_APP) {
     return null;
   }
   try {
-    return readDuid();
+    return IS_TIZEN ? readDuid() : readAndroidId();
   } catch (e) {
-    logger.warn('tvPlatform', 'getDuid failed', describe(e));
+    logger.warn('tvPlatform', 'deviceId failed', describe(e));
     return null;
+  }
+}
+
+/**
+ * Back at the root screen (Android TV). The wrapper finishes the app — the TV
+ * goes Home — unless Hotel mode is on, where it does nothing. No-op elsewhere.
+ */
+export function rootBack(): void {
+  try {
+    androidTv()?.rootBack();
+  } catch (e) {
+    logger.warn('tvPlatform', 'rootBack failed', describe(e));
+  }
+}
+
+/** Turns Android TV Hotel mode on/off (Home alias + start on boot). No-op elsewhere. */
+export function setHotelMode(on: boolean): void {
+  try {
+    androidTv()?.setHotelMode(on);
+  } catch (e) {
+    logger.warn('tvPlatform', 'setHotelMode failed', describe(e));
+  }
+}
+
+/** Hotel mode as the wrapper sees it; null off Android TV or if it could not say. */
+export function hotelModeStatus(): HotelModeStatus | null {
+  const bridge = androidTv();
+  if (!bridge) {
+    return null;
+  }
+  try {
+    const raw = JSON.parse(bridge.hotelModeStatus()) as Partial<HotelModeStatus>;
+    return {
+      on: raw.on === true,
+      defaultHome: raw.defaultHome === true,
+      canDrawOverlays: raw.canDrawOverlays === true,
+    };
+  } catch (e) {
+    logger.warn('tvPlatform', 'hotelModeStatus failed', describe(e));
+    return null;
+  }
+}
+
+/** Opens Android's "choose a Home app" picker. No-op elsewhere. */
+export function openHomeChooser(): void {
+  try {
+    androidTv()?.openHomeChooser();
+  } catch (e) {
+    logger.warn('tvPlatform', 'openHomeChooser failed', describe(e));
+  }
+}
+
+/**
+ * Opens "Display over other apps" for this app. False when the TV has no such
+ * screen (common on TVs) — staff then grant it over adb instead.
+ */
+export function openOverlaySettings(): boolean {
+  try {
+    return androidTv()?.openOverlaySettings() ?? false;
+  } catch (e) {
+    logger.warn('tvPlatform', 'openOverlaySettings failed', describe(e));
+    return false;
   }
 }
 
@@ -252,7 +385,7 @@ async function reachable(url: string, timeoutMs = 8000): Promise<boolean> {
 /** Everything the Phase 0 feasibility tests need, read off the running TV. */
 export async function getDiagnostics(): Promise<TvDiagnostics> {
   const [duid, apps, sources, apiReachable, socketReachable] = await Promise.all([
-    probe(async () => readDuid()),
+    probe(async () => (IS_ANDROID_TV_APP ? readAndroidId() : readDuid())),
     probe(installedApps),
     probe(videoSources),
     reachable(`${config.apiBaseUrl}/`),

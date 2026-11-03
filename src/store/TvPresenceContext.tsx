@@ -7,7 +7,7 @@ import {APP_VERSION, config} from '../constants/config';
 import {STORAGE_KEYS} from '../constants/storageKeys';
 import {logger} from '../services/logger';
 import {storage} from '../services/storage.service';
-import {deviceId, platformLabel} from '../services/tvPlatform';
+import {deviceId, platformLabel, setHotelMode} from '../services/tvPlatform';
 import {IS_TV} from '../utils/responsive';
 import {useAuth} from './AuthContext';
 
@@ -76,6 +76,8 @@ function RoomTvPresence({children}: {children: React.ReactNode}) {
     storage.remove(STORAGE_KEYS.TV_DEVICE_TOKEN);
     setDeviceToken(null);
     setRoom({});
+    // An unpaired TV is no longer the hotel's: hand Home back to the TV.
+    setHotelMode(false);
     if (authRef.current.status === 'authenticated') {
       await resetLocal();
     }
@@ -88,6 +90,10 @@ function RoomTvPresence({children}: {children: React.ReactNode}) {
     }
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    // No device token means no admin switch can be on. Covers app data being
+    // cleared while the native Hotel mode flag survived (it lives outside the
+    // WebView's storage).
+    setHotelMode(false);
 
     const begin = async (): Promise<void> => {
       try {
@@ -175,6 +181,8 @@ function RoomTvPresence({children}: {children: React.ReactNode}) {
         throw new Error('Empty TV state');
       }
       setRoom({hotelName: state.hotelName, roomNumber: state.roomNumber});
+      // The admin panel's per-TV switch; a no-op outside the Android TV APK.
+      setHotelMode(state.hotelMode === true);
 
       if (state.mode === 'idle') {
         setPhase('idle');

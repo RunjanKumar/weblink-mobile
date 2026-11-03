@@ -2,11 +2,21 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <% if (tvTarget === 'androidtv') { %>
+    <!--
+      Android TV's WebView reports devicePixelRatio 2 on a 1080p panel, so
+      `device-width` would be only 960 CSS px and the ten-foot `zoom` below would
+      never kick in. Pin the layout to 1920 (the wrapper turns on
+      useWideViewPort + loadWithOverviewMode) so it matches LG pixel for pixel.
+    -->
+    <meta name="viewport" content="width=1920, user-scalable=no" />
+    <% } else { %>
     <!--
       LG webOS renders at a fixed 1920x1080. `user-scalable=no` stops the remote's
       pointer mode from pinch-zooming the UI out of alignment.
     -->
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <% } %>
     <title>Weblink</title>
     <style>
       html,

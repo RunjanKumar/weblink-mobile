@@ -1,5 +1,6 @@
 /**
- * TV remote-control support for the web builds: LG webOS and Samsung Tizen.
+ * TV remote-control support for the web builds: LG webOS, Samsung Tizen and
+ * the Android TV wrapper APK.
  *
  * Android TV gives D-pad focus movement for free — the platform walks the view
  * tree. A browser does not: webOS and Tizen deliver the remote's arrow keys as
@@ -11,8 +12,10 @@
  *   37/38/39/40  arrows  -> spatial focus move
  *   13           OK      -> left to the browser (activates the focused element)
  *   461 / 10009  Back    -> pop one screen. At the root: webOS platformBack()
- *                           (exit popup / Home); Tizen swallows it (see the
- *                           keydown handler).
+ *                           (exit popup / Home); Tizen swallows it (see
+ *                           handleBack).
+ *   nexgen:back event       Android TV's Back, forwarded by the wrapper's
+ *                           Activity -> same handleBack().
  *
  * Arrows, OK and Back reach a Tizen web app without `tvinputdevice.registerKey`;
  * only media / colour keys need registering.
@@ -20,8 +23,9 @@
  * Call `installWebOSRemote()` once at startup; it is a no-op off the web.
  */
 import {goBackIfPossible, navigationRef} from '../navigation/navigationRef';
-import {IS_TIZEN} from '../utils/responsive';
+import {IS_ANDROID_TV_APP, IS_TIZEN} from '../utils/responsive';
 import {closeTopModal, topModalRootId} from './modalRegistry';
+import {rootBack} from './tvPlatform';
 const KEY_LEFT = 37;
 const KEY_UP = 38;
 const KEY_RIGHT = 39;
@@ -338,6 +342,36 @@ function navDepth(): number {
 
 let lastDepth = 0;
 
+/**
+ * The remote's Back, from whichever platform delivered it.
+ *
+ * Priority 1: close the top-most open modal (dialog / payment sheet).
+ * Priority 2: pop the navigator (React Navigation is not wired to browser
+ * history — history.back() would exit the app from anywhere).
+ * At the root with nothing open:
+ *  - Android TV: native rootBack(). Normally the app finishes and the TV goes
+ *    Home (Google's TV quality rule TV-DB forbids holding Back at the root);
+ *    in Hotel mode the app is the TV's home screen and Back does nothing.
+ *  - webOS: platformBack(). appinfo sets disableBackHistoryAPI, so the
+ *    system does nothing on its own — LG requires the entry screen to
+ *    show the exit popup (webOS 6+) or open Home (5.0), and
+ *    platformBack() is what triggers that platform behaviour.
+ *  - Tizen: swallow it. In a hotel the app IS the TV's home screen, so
+ *    Back at the root must not leave it.
+ */
+function handleBack(): void {
+  if (closeTopModal() || goBackIfPossible()) {
+    return;
+  }
+  if (IS_ANDROID_TV_APP) {
+    rootBack();
+    return;
+  }
+  if (!IS_TIZEN) {
+    platformBack();
+  }
+}
+
 let installed = false;
 
 export function installWebOSRemote(): void {
@@ -362,6 +396,10 @@ export function installWebOSRemote(): void {
     lastDepth = depth;
     requestAnimationFrame(() => requestAnimationFrame(() => seedFocus(back)));
   });
+
+  // Android TV: the Activity consumes the remote's Back before the WebView
+  // sees a keydown, and forwards it as this event instead.
+  window.addEventListener('nexgen:back', handleBack);
 
   // Magic Remote pointer: a click is the same "this opened the next screen".
   document.addEventListener(
@@ -398,20 +436,8 @@ export function installWebOSRemote(): void {
         lastActivated = document.activeElement as HTMLElement | null;
       }
       if (event.keyCode === KEY_BACK_WEBOS || event.keyCode === KEY_BACK_TIZEN) {
-        // Priority 1: close the top-most open modal (dialog / payment sheet).
-        // Priority 2: pop the navigator (React Navigation is not wired to
-        // browser history — history.back() would exit the app from anywhere).
-        // At the root with nothing open:
-        //  - webOS: platformBack(). appinfo sets disableBackHistoryAPI, so the
-        //    system does nothing on its own — LG requires the entry screen to
-        //    show the exit popup (webOS 6+) or open Home (5.0), and
-        //    platformBack() is what triggers that platform behaviour.
-        //  - Tizen: swallow it. In a hotel the app IS the TV's home screen, so
-        //    Back at the root must not leave it.
         event.preventDefault();
-        if (!closeTopModal() && !goBackIfPossible() && !IS_TIZEN) {
-          platformBack();
-        }
+        handleBack();
       }
 
       const direction = directionFor(event.keyCode);

@@ -7,7 +7,17 @@
  */
 import {Dimensions, Platform} from 'react-native';
 
-export type TvPlatformName = 'tizen' | 'webos' | 'web' | 'native';
+export type TvPlatformName = 'tizen' | 'webos' | 'androidtv' | 'web' | 'native';
+
+/** Android TV Hotel mode, as the wrapper sees it. */
+export interface HotelModeStatus {
+  /** The app is set up as the TV's home screen + starts on power-on. */
+  on: boolean;
+  /** The TV's default Home app is this app (staff picked it in the chooser). */
+  defaultHome: boolean;
+  /** "Display over other apps" — lets the boot receiver open the app on Android 10+. */
+  canDrawOverlays: boolean;
+}
 
 export type Probe<T> = {ok: true; value: T} | {ok: false; error: string};
 
@@ -42,6 +52,23 @@ export function platformLabel(): string {
 
 export function deviceId(): string | null {
   return null;
+}
+
+// Hotel mode and root Back belong to the Android TV wrapper APK (a web build);
+// the React Native app has no bridge for them.
+
+export function rootBack(): void {}
+
+export function setHotelMode(_on: boolean): void {}
+
+export function hotelModeStatus(): HotelModeStatus | null {
+  return null;
+}
+
+export function openHomeChooser(): void {}
+
+export function openOverlaySettings(): boolean {
+  return false;
 }
 
 export async function launchApp(_appId: string): Promise<boolean> {
