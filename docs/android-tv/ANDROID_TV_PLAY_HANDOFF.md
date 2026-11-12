@@ -1,33 +1,38 @@
-# Nexgen Hotels — Android TV app: Google Play tak (Mac handoff)
+# Nexgen Hotels — Android TV app: Google Play tak (handoff)
 
-**Date:** 30 Oct 2026 · **Branch:** `feature/android-tv` (weblink-mobile) · **Kiske liye:** Runjan + Mac pe chalne wala Claude Code
+**Date:** 30 Oct 2026 · **Updated:** 3 Nov 2026 · **Branch:** `feature/android-tv` (weblink-mobile) · **Kiske liye:** Runjan + Claude Code
 
-Ye doc Windows laptop pe hui saari research aur planning ka nichod hai, taaki Mac pe dobara R&D na karni pade. Isme kya banana hai, kyun, kis file mein, Mac kaise set karna hai, aur Play Console mein kya bharna hai, sab hai.
+Ye doc saari research aur planning ka nichod hai, taaki dobara R&D na karni pade. Isme kya banana hai, kyun, kis file mein, machine kaise set karni hai, aur Play Console mein kya bharna hai, sab hai.
 
-> **Mac wale Claude ke liye:** pehle ye poora doc padho. Section 13 ka order follow karo. Commit/push sirf tab karo jab Runjan bole (unka standing rule hai). Runjan ko Hinglish mein, step-by-step aur har step ka "kyun" batate hue samjhao. Paid service kabhi suggest mat karo (zero-spend rule).
+> **Claude ke liye:** pehle ye poora doc padho, phir `ANDROID_TV_BUILD.md` (build, versions, gotchas). Section 13 ka order follow karo. Commit/push sirf tab karo jab Runjan bole (unka standing rule hai). Runjan ko Hinglish mein, step-by-step aur har step ka "kyun" batate hue samjhao. Paid service kabhi suggest mat karo (zero-spend rule).
+
+> **12 Nov 2026 ki sthiti:** Steps 1–5 ho gaye (Section 13). Kaam **Mac pe nahi**, isi laptop pe hua: MacBook Pro 16" (2019, Intel i9) jo Boot Camp mein Windows 10 chalata hai. Runjan ne is laptop pe download wala rule hata diya. Backend live hai, admin push ho gaya. **Asli Xiaomi TV (MiTV-MOOQ1) pe auto-launch fix aur test hua**: boot pe app Home se pehle khulti hai, aur standby se on karne pe bhi (Section 7.5). Play Console account **Organization** hai, toh closed test nahi chahiye. Agla kaam: **Step 6, Play Console**. Seekhi hui baatein: certified TVs pe "Set as Home app" chooser kabhi nahi aata (7.5), aur Razorpay ka asli payment emulator pe test nahi hota (G19).
 
 ---
 
-## 0. Mac pe pehla din (quick start)
+## 0. Quick start
 
+**Is laptop pe (Boot Camp Windows) sab set hai.** Repos `C:\dev\` mein hain (`weblink-mobile`, `Hotel-Automation`, `Hotel-web-app`), Android Studio, SDK, TV emulators aur upload keystore sab maujood hain. Seedha Section 13 se aage badho.
+
+**Nayi machine pe (Mac ya doosra PC):**
 1. Ye doc poora padho (~25 min).
-2. Section 8 se Mac set karo: Android Studio, emulator, repos, `.env`, keystore.
-3. Phir Section 13 ka order follow karo: web code → wrapper → backend/admin → emulator test → Play Console.
-4. Mac pe Claude Code ko bolo: "docs/android-tv/ANDROID_TV_PLAY_HANDOFF.md padho aur Section 13 ke step 1 se shuru karo."
+2. Section 8 se machine set karo: Android Studio, emulator, repos, `.env`, keystore. **Keystore naya mat banana**, Drive wala `.jks` aur password manager wala password use karo (Section 8.6).
+3. Phir Section 13 ka order follow karo.
+4. Claude Code ko bolo: "docs/android-tv/ANDROID_TV_PLAY_HANDOFF.md aur ANDROID_TV_BUILD.md padho, phir Section 13 ka agla step karo."
 
 ---
 
-## 1. Abhi ki sthiti (30 Oct 2026)
+## 1. Abhi ki sthiti (30 Oct 2026, Android TV row 3 Nov ko update)
 
 | Platform | Status | Code | Note |
 |---|---|---|---|
 | LG webOS | Seller Lounge mein **"QA Processing"** (submit 27 Oct). Abhi live nahi. | weblink-mobile `feature/lg-webos-qa` @ `1bcfe4f` (30 Oct ko push hua) | App ID `com.wattinventive.nexgenhotels`. LG QA setup: staff `lg.qa@wattinventive.com`, **Room 103**, guest "LG Tester" (2027-04-30 tak). LG QA chalne tak inhe mat chhedna. |
 | Samsung Tizen | `.wgt` ready | Worktree `weblink-mobile-samsung` (origin/main) | Install kit: Windows laptop pe `C:\project\hotel\samsung-install-kit` |
-| **Android TV** | **Abhi kuch bana nahi.** Ye doc hi plan hai. | `feature/android-tv` (= `1bcfe4f` + ye docs) | Google Play pe nayi listing |
+| **Android TV** | **App ban gayi aur emulators pe test ho gayi.** Play Console baaki hai. | weblink-mobile `feature/android-tv` @ `d8a966f`. Backend `development-07-10-2026` @ `e83d1b1` (**dev pe live**). Admin `feature/clinical-module-gate` @ `d77b6b3` (push hua, **deploy baaki**) | Google Play pe nayi listing. Dev pe Room 102 mein ek emulator TV paired hai. |
 
 **Google Play account:** pehle se hai, aur uspe home-automation app live hai. Woh alag product hai aur usme TV nahi hai. Hotel room-TV app **nayi, alag listing** banegi, isi account mein.
 
-**Repos (teeno Mac pe chahiye):**
+**Repos (teeno chahiye; is laptop pe `C:\dev\` mein hain):**
 
 | Repo | GitHub | Kaam |
 |---|---|---|
@@ -52,7 +57,8 @@ Ye doc Windows laptop pe hui saari research aur planning ka nichod hai, taaki Ma
 | Web bundle **APK ke andar** (assets) rahega, server se load nahi hoga | LG `.ipk` / Samsung `.wgt` jaisa hi. Offline boot hota hai, aur Play update se naya bundle aata hai. |
 | **Hotel mode pehli release mein hi** (opt-in, admin panel ke per-TV switch se) | Client ko auto-start chahiye. Admin switch ki wajah se guest band nahi kar sakta, aur Google reviewer ke TV pe ye default **off** rahega. |
 | "Coming soon" tiles (Netflix, Google Cast, Live TV, Explore Hotel) **hide** | LG jaisa. Reviewer ko adhoore buttons nahi dikhne chahiye. |
-| Build/test **Mac** pe | Windows laptop pe kuch download nahi karna (Runjan ka rule). |
+| Build/test ~~Mac pe~~ → **isi laptop pe** (3 Nov) | Pehle plan Mac ka tha (Windows pe download mana tha). Runjan ke paas alag Mac nahi hai; ye MacBook Boot Camp mein Windows chalata hai, toh rule hata ke yahin kiya. |
+| **targetSdk 36** (doc ka 35 nahi) | Android Studio 2026.1 template ne 36 diya; Play nayi apps ke liye latest maangta hai. Versions: `ANDROID_TV_BUILD.md` → "Version pins". |
 
 ---
 
@@ -235,6 +241,8 @@ Docs: `ANDROID_TV_BUILD.md` (`WEBOS_BUILD.md` jaisa). Build, install aur release
 ---
 
 ## 6. Part 2: Native wrapper `androidtv/`
+
+> **3 Nov:** wrapper ban gaya (`androidtv/`). Neeche ke sketches ab sirf plan ka record hain; asli code repo mein hai. Sketch se farq: AGP 9.3.3 / Gradle 9.5 / compileSdk 36.1 / targetSdk 36; androidx core 1.18.0, webkit 1.15.0 (minSdk 23 ki wajah se); `recreate()` ke baad hamesha start page load; API 23 ke liye purana `shouldOverrideUrlLoading` bhi; DPAD_CENTER hamesha Enter; Gradle Android Studio ke JBR (Java 21) pe chalta hai. Hotel mode ka asli behaviour Section 7.5 mein.
 
 ### 6.1 Project kaise banaye (version ki research bachane ke liye)
 Gradle/AGP/Kotlin ke versions khud mat chuno. **Android Studio template** se banao, woh matching versions aur Gradle wrapper (`gradlew` + jar) khud bana deta hai:
@@ -525,11 +533,13 @@ Admin panel (TV Devices) ── switch ON ──▶ PATCH /v1/tv/devices/:id {ho
   ▶ tvDevices.hotelMode = true ▶ tvService.notifyRoom(roomId)  (socket "tv:refresh")
   ▶ TV: GET /v1/tv/state ▶ {…, hotelMode:true}
   ▶ JS setHotelMode(true) ▶ NexgenTV.setHotelMode(true) ▶ HomeAlias ENABLED
-  ▶ Staff TV pe: Settings → "Set as Home app" → Nexgen Hotels → Always
-Ab: power-on / Home button / standby se wake → app;  root pe Back → kuch nahi
+  ▶ TV ki Welcome screen pe staff card: is TV ke hisaab se agla step (7.5)
+Level 1: power-on → app;  Level 2 (launcher disabled): Home button / boot → app, root pe Back → kuch nahi
 Switch OFF ▶ alias DISABLED ▶ TV ka stock Home wapas;  root pe Back → TV Home
+           (stock launcher disabled ho toh alias ON rehta hai — kaali screen nahi)
 Unpair ▶ JS setHotelMode(false)
 ```
+> **3 Nov:** ye flow dev server pe end-to-end chal gaya (admin switch → 5 sec mein TV refresh).
 Wajah: guest Hotel mode band nahi kar sakta, staff remote se control karta hai, aur Google reviewer ke paired TV pe ye default **off** rehta hai.
 
 ### 7.2 Backend (Hotel-Automation)
@@ -582,18 +592,56 @@ setTvHotelMode: builder.mutation({
 }),
 ```
 - `pages/tvDevices/index.tsx`: "Hotel mode" column mein Switch. Sirf tab dikhe jab `model` "Android TV" se shuru ho, warna "—". Permission `MODIFY_ROOM` (`usePermissions`, `cell-action.tsx` jaisa). Change hone pe `showMessage` + refetch.
-- Help text / tooltip: "On karne ke baad TV pe Settings → Set as Home app → Nexgen Hotels → Always. Google TV pe Home app nahi badalta, wahan TV sirf full power-on pe app kholega (Quick start / Instant-on band karein)."
+- Help text / tooltip (3 Nov wala, asli): "TV on hote hi app khulti hai. Switch ON ke baad TV ki Welcome screen pe jo step dikhe wo karo (aam taur pe 'Allow' for Display over other apps), aur Quick start / Instant-on band karo. Google/Android TV ka launcher TV se nahi badalta; app ko Home bhi banana ho toh installer adb se TV launcher disable kare (ANDROID_TV_BUILD.md)."
 
-### 7.5 Hotel mode ki limits (docs + help text mein likhna)
-- **Google TV** third-party Home app chunne nahi deta. Wahan standby se wake pe app nahi khulega, sirf full boot pe (aur Android 10+ pe "Display over other apps" allowed hona chahiye).
-  - Upay 1: TV ki Settings mein **Quick start / Instant-on band** karo, taaki power-on = full boot.
-  - Upay 2: vendor ka hotel menu ("power-on app").
-- Kuch TVs pe pehle se koi default Home set hota hai. Tab chooser nahi aata. Staff ko Settings → Apps → (stock launcher) → **Clear defaults** karna padega.
-- Hotel mode mein guest dusre apps (YouTube waghera) remote ke Netflix/YouTube/Input buttons se khol sakta hai. Home dabane pe hamara app wapas aata hai.
+### 7.5 Hotel mode ki limits (3 Nov ki testing ke baad, asli tasveer)
+**Pehle ki galat soch:** "Android TV pe staff 'Set as Home app' → Always chun lega, sirf Google TV mein dikkat hai."
+
+**Asli baat:** Google ke **dono** TV launchers HOME ko **priority 2** pe declare karte hain:
+- Google TV: `com.google.android.apps.tv.launcherx`
+- Android TV: `com.google.android.tvlauncher` (Android 9 aur 14 pe check kiya)
+
+Hamara `HomeAlias` priority 0 pe hai, toh Home dabane pe hamesha unka launcher khulta hai, aur **chooser kabhi aata hi nahi**. Chooser sirf un AOSP TVs pe aa sakta hai jinke vendor launcher ki priority 0 ho (shayad kuch OneTouch jaise). App khud pata karti hai (`HotelMode.homeChoice()`): `self` / `chooser` / `default` (kisi aur launcher ko "Always" chuna gaya hai) / `locked`. Welcome screen ka staff card usi hisaab se ek step dikhata hai.
+
+**Hotel ke liye do level:**
+
+| Level | Kaise | Kya milta hai | Test |
+|---|---|---|---|
+| **1. Power-on + standby** (adb nahi chahiye) | Admin mein Hotel mode ON → TV ki Welcome screen pe "Allow" (Display over other apps) → card ke kehne pe ek baar Settings → About → Restart | TV boot pe **aur standby se on hone pe** app khulti hai (12 Nov ka fix). Remote ka Home button TV ka apna Home kholta hai. | ✅ Xiaomi MiTV-MOOQ1 (asli TV), Google TV 14/16, Android TV 9/10/11 |
+| **2. Poora Home** (install ke waqt adb) | Level 1 + `adb shell pm disable-user --user 0 com.google.android.tvlauncher` (Google TV pe `com.google.android.apps.tv.launcherx`) | Home button bhi app kholta hai, root pe Back app nahi chhodta, boot pe app. Overlay permission ki zaroorat nahi. | ✅ Android TV 14 |
+
+**12 Nov: asli Xiaomi TV pe (MiTV-MOOQ1, Android 10, 1.8 GB RAM, "low RAM" device) auto-launch poora fix aur test hua:**
+- **Design:** app ke ab do process hain. Bada process WebView chalata hai (~150 MB). Chhota `:watch` process (~20 MB) boot receivers, "screen on" receiver aur ek 1×1 invisible overlay rakhta hai, jo use zinda rakhta hai. YouTube chalte waqt memory-killer badi app ko maar deta hai, lekin watcher bachta hai aur TV on hote hi app dobara khol deta hai. Poori technical detail: `ANDROID_TV_BUILD.md` → "Auto-launch".
+- **Boot:** `LOCKED_BOOT_COMPLETED` (early signal) se app **TV ke Home se pehle** khulti hai, boot ke ~88 sec pe. Pehle ~3 min lagte the, kyunki is TV pe 226 apps boot signal sunti hain aur Android unhe ek-ek karke deta hai.
+- **Standby se on:** TV ka launcher on hote hi apna Home khol deta hai, isliye app 12 sec tak har 1.5 sec pe khud ko wapas saamne laati hai. TV Home se, YouTube ke upar se, badi app mari hui ho tab bhi, aur 14 min standby ke baad bhi, sab ✅.
+- **Bijli katna (plug nikaalna):** Mi TV pe permission bachi, aur app khuli ✅.
+- **TV Manager (Memory boost + Optimise):** watcher bacha, force stop nahi hua ✅.
+- **Splash:** load hote waqt safed screen ki jagah Nexgen logo dikhta hai (32-bit ARM TV pe app 5–15 sec mein khulti hai).
+- **Mi TV pe mila bug:** "Allow" button kuch nahi kholta tha, kyunki Xiaomi pe per-app overlay page nahi hai. Ab saare apps wali list khulti hai.
+- **Level 2 ke liye dhyan:** Mi TV pe `com.duokan.factorytest` bhi Home app ki list mein hai (priority 0). Stock launcher disable karne se pehle ise samajhna hoga.
+
+**Auto-launch test results (4 Nov, emulators):**
+- Boot pe app khuli: Android 9 (bina permission), 10, 11, 14, 16 (permission ke saath). Android 10+ pe bina permission Android rokta hai. Release APK pe bhi verified (Google TV 16).
+- Reliability: Google TV 14 pe 5/5 restart, boot complete ke 17–35 sec baad, 60 sec baad bhi saamne. Doosri app khuli ho tab bhi restart pe app khuli.
+- Achanak bijli katna (emulator hard kill): 3/3 app khuli, jab permission pehle se saved thi. Level 2 mein bhi khuli.
+- **Standby, Level 1:** TV Home se wake = TV Home (app nahi). **Level 2:** wake pe app, lekin guest doosri app chhod gaya toh wake pe wahi dikhti hai; Home button app pe laata hai.
+- **Force stop, Level 1:** app boot pe nahi khulti, aur ye haalat restart ke baad bhi rehti hai, jab tak app haath se na kholi jaaye. Level 2 pe asar nahi.
+- **Permission save:** Allow ke baad saaf restart se pakki ho jaati hai. Allow ke 3 min baad bhi achanak bijli katne se kho gayi (test `adb appops` se kiya, Settings toggle se nahi). Isliye **Allow ke baad TV ek baar saaf restart karo.**
+
+- **Level 2 ka khatra, jo handle kiya:** launcher disabled ho aur Hotel mode OFF kar diya toh Android ka khaali `FallbackHome` (kaali screen) bachta, aur remote se nikalne ka raasta nahi rehta. Ab app aisi haalat mein Home bani rehti hai, aur launcher wapas enable hote hi (`adb shell pm enable <pkg>`) ek minute mein Home lauta deti hai.
+- ~~Standby se wake pe app nahi khulti (Level 1 mein).~~ **12 Nov ko fix hua** (upar). Quick start / Instant-on band karna ab zaroori nahi hai. Vendor ka hotel menu ("power-on app") ho toh wo backup option hai.
+- Kisi aur launcher ko "Always" chuna gaya ho (`default`): Settings → Apps → us launcher → **Clear defaults**.
+- Dono levels mein guest remote ke Netflix/YouTube/Input buttons se doosre apps khol sakta hai. Level 2 mein Home dabane pe hamari app wapas aati hai.
 
 ---
 
 ## 8. Mac setup (click-by-click)
+
+> **3 Nov:** asli setup isi Boot Camp Windows laptop pe hua; neeche ke Mac steps nayi machine ke liye hain. Windows pe jo alag hai:
+> - `ANDROID_HOME` = `C:\Users\Karan\AppData\Local\Android\Sdk` (user env), `platform-tools` + `emulator` PATH mein. SDK cmdline-tools haath se daale (`sdkmanager` ke liye).
+> - Emulators (Intel, x86): `TV_A_GoogleTV_API34`, `TV_B_AndroidTV_API28` (WebView 66), `TV_C_AndroidTV_API34`, `TV_D_GoogleTV_API36`. Hamesha `-gpu swiftshader_indirect` ke saath chalao (G19).
+> - Gradle Android Studio ke JBR (Java 21) pe chalta hai; system ka `JAVA_HOME` 17 hai. `npm run aab` JBR khud chun leta hai.
+> - Java is laptop pe GitHub ke download server tak nahi pahunchta (shayad McAfee). Gradle ki zip `curl` se laani padti hai (G20).
 
 ### 8.1 Basic tools
 1. **Git:** Terminal mein `git --version`. Na ho toh macOS khud "Command Line Developer Tools" install karne ko puchega → Install.
@@ -634,6 +682,8 @@ cd weblink-mobile && git checkout feature/android-tv && npm ci --legacy-peer-dep
 - Hotel-Automation aur Hotel-web-app ki branches unke team ke current workflow ke hisaab se lo (Windows pe abhi `development-07-10-2026` aur `feature/clinical-module-gate` checked out hain).
 
 ### 8.6 Upload keystore (sirf ek baar; bahut zaroori)
+> **3 Nov: ban chuka hai. Naya mat banana.** `C:\Users\Karan\keys\nexgenhotels-upload.jks` (alias `upload`), copy `C:\Users\Karan\keys-backup\`, aur Runjan ki Google Drive ke private folder mein. Password Runjan ke password manager mein hai (is doc mein nahi). Upload certificate SHA-256: `5F:E5:F9:F5:2D:EC:6B:0A:65:BE:30:28:26:5D:54:AE:36:FC:E3:76:29:86:51:C2:D3:D9:C7:22:89:C7:C6:AD`. Nayi machine pe Drive se `.jks` lo aur `androidtv/keystore.properties` bharo (path mein `/`).
+
 ```bash
 mkdir -p ~/keys
 keytool -genkeypair -v -keystore ~/keys/nexgenhotels-upload.jks -alias upload \
@@ -661,6 +711,8 @@ Debug build mein Mac Chrome → `chrome://inspect` → WebView dikhega → conso
 ## 9. Play Console (click-by-click)
 
 **0. Account type check (timeline ke liye zaroori):** Play Console → Settings → Developer account → Account details.
+> **4 Nov: checked. Account type = Organization** (Watt Inventive Technologies Private Limited). Closed test ki shart **nahi** lagti, step 6 skip ho sakta hai.
+
 - **Personal** type ho aur **13 Nov 2023 ke baad** bana ho → har nayi app ke liye production se pehle **closed test: kam se kam 12 testers, 14 din lagaatar opted-in**. Matlab ~2 hafte extra.
 - Organization account pe ye shart nahi hai.
 - Testers ko sirf opt-in link pe join karna hota hai. Kaun log banenge, ye pehle se tay kar lo.
@@ -721,8 +773,10 @@ Jab tak Google review chal raha hai, ye account/room/guest mat chhedna.
 2. Play Store → Nexgen Hotels → Install.
 3. App pairing code dikhayega → admin panel se room ke saath pair karo.
 4. Admin → TV Devices → Hotel mode ON.
-5. TV → Settings → **Set as Home app** → Nexgen Hotels → **Always**.
-6. Power off/on aur Home button se test karo.
+5. TV ki Welcome screen (khali room) pe staff card ka step karo, aam taur pe **"Allow"** → list mein Nexgen Hotels → ON → Back. Card badal ke **"restart this TV once"** dikhayega → **Settings → About → Restart**. Restart ke baad card gayab ho jaana chahiye. (Certified TVs pe "Set as Home app" chooser nahi aata, Section 7.5.)
+6. *(Optional, 12 Nov se)* TV settings mein Quick start / Instant-on band. Ab standby se on karne pe bhi app khulti hai, toh ye zaroori nahi.
+7. *(Level 2, sirf agar Home button bhi app khole)*: Developer options → USB/Network debugging → laptop se `adb shell pm disable-user --user 0 com.google.android.tvlauncher` (Google TV: `com.google.android.apps.tv.launcherx`).
+8. Power off/on (aur Level 2 mein Home button) se test karo.
 
 **Non-Play TV (bina Play Store; OneTouch shayad):**
 - APK: Play Console → **App bundle explorer → (version) → Downloads → Signed, universal APK**. **Upload-key se sign kiya APK nahi dena.** Uska signature Play se alag hota hai, isliye ANDROID_ID bhi badal jata hai aur baad mein Play/updated APK uske upar install nahi hota.
@@ -730,7 +784,8 @@ Jab tak Google review chal raha hai, ye account/room/guest mat chhedna.
   - TV pe: Settings → About → Build pe 7 baar click → Developer options → USB/Network debugging ON.
   - `adb connect <TV-IP>:5555`
   - `adb install -r NexgenHotels.apk`
-  - Android 10+ aur Home app na badle toh: `adb shell appops set com.wattinventive.nexgenhotels SYSTEM_ALERT_WINDOW allow`
+  - Android 10+ aur Home app na badle toh: `adb shell appops set com.wattinventive.nexgenhotels SYSTEM_ALERT_WINDOW allow`, phir `adb shell appops write-settings` (warna agle restart pe kho sakta hai, G18)
+  - Level 2 (Home button bhi app khole): `adb shell pm disable-user --user 0 <TV launcher package>`. Pehle `adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME` se launcher ka naam dekho.
   - `adb shell am start -n com.wattinventive.nexgenhotels/.MainActivity`
 - Updates: Play nahi hai, toh har version pe yahi kit dobara chalani padegi (`install -r` data rakhta hai, pairing bani rehti hai).
 
@@ -738,7 +793,7 @@ Jab tak Google review chal raha hai, ye account/room/guest mat chhedna.
 1. Settings → About: Android version, aur "Android TV OS" / "Google TV" / sirf "Android 9/11" (AOSP smart TV). minSdk 23 ki wajah se Android 6+ chahiye.
 2. Play Store hai ya nahi.
 3. Settings → Apps → Show system apps → **Android System WebView** ka version: **68 ya upar** chahiye.
-4. Home app chunne ka option hai ya nahi.
+4. Home app chunne ka option hai ya nahi. Pakka jawab adb se: `adb shell pm query-activities --brief -a android.intent.action.MAIN -c android.intent.category.HOME` (launcher ki priority 0 se zyada = locked). App ki Settings → Device Info bhi yahi dikhati hai.
 5. Developer options khulte hain ya nahi.
 6. Vendor ka hotel/commercial menu ("power-on app"). Dealer se puchho. Factory menu ka code guess mat karna.
 7. Remote: Back, Home, OK, number keys, Input/Netflix buttons.
@@ -746,6 +801,14 @@ Jab tak Google review chal raha hai, ye account/room/guest mat chhedna.
 ---
 
 ## 11. Test checklist
+
+> **3 Nov ka result** (emulators, dev server, Room 102):
+> - ✅ Pairing, admin mein "Android TV 14 · …", 1920 layout, 8 tiles + View Bill + Cart + ⋮ Menu, Back aur focus wapsi, D-pad, OK, offline/online card, checkout → Welcome, uninstall + reinstall (naya code, pichhla room suggest, duplicate nahi), coming-soon tiles nahi, purana WebView message (Android 9).
+> - ✅ Hotel mode: ON/OFF, locked detection + staff card + Allow, power-on (Google TV 14 + 16), Level 2 Home/Back/boot (Android TV 14), launcher disabled + OFF = kaali screen nahi.
+> - ✅ Popup: `window.open` overlay WebView, Back se band; `upi://` aur doosri site pe navigation block.
+> - ⏳ **Razorpay asli payment**: emulator crash karta hai (G19), asli TV pe karna hai. Pehle confirm karo ki dev ki Razorpay key `rzp_test_` hai.
+> - ⏳ On-screen keyboard se text input (emulator mein keyboard bhi kabhi crash karata hai).
+> - ⏳ Play se install hua build (Step 6 ke internal testing ke baad).
 
 **Code ke baad (Mac):**
 - weblink-mobile: `npx tsc --noEmit`, `npx jest`.
@@ -795,23 +858,27 @@ Jab tak Google review chal raha hai, ye account/room/guest mat chhedna.
 - **G9: Target API.** Play ka rule: nayi apps API 36, lekin **Android TV apps ke liye minimum API 34**. Hum 35 target karte hain. Upload ke waqt Play Console jo bole woh final.
 - **G10: Personal account** (Nov 2023 ke baad) → har nayi app ke liye 12 testers × 14 din ka closed test.
 - **G11: Assets.** In-app banner 320×180 (poori jagah bhare, warna rejection). Play TV banner 1280×720 bina transparency. TV screenshots 16:9.
-- **G12: Google TV launcher limit.** Third-party Home app set nahi hota, isliye wahan sirf boot path chalega (Quick start band karo).
+- **G12: Launcher limit (3 Nov ko sahi kiya).** Sirf Google TV nahi, **Android TV ka launcher bhi** priority 2 pe hai, toh certified TVs pe third-party Home kabhi nahi chuna ja sakta. Level 1 = boot path (overlay permission + Quick start band); Level 2 = adb se stock launcher disable. Section 7.5.
 - **G13: `.env` git mein nahi hai.** Mac pe surakshit tareeke se copy karo. `API_BASE_URL` build ke waqt bundle mein bake hota hai.
 - **G14: Test rooms.** Room 201 (asli office hardware) aur Room 103 (LG QA) ko Google QA ke liye mat use karo.
 - **G15: LG branch.** LG ka koi defect aaye toh fix `feature/lg-webos-qa` (`1bcfe4f` line) pe karo, phir `feature/android-tv` ko us pe rebase/merge karo, taaki dono ka TV code ek rahe.
-- **G16: Purana WebView.** Hamara bundle Chromium 68+ maangta hai (LG ke liye `es2018` + core-js polyfills). Play TVs pe WebView auto-update hota hai. AOSP TVs pe purana ho sakta hai, isliye version-check message (Section 6.5).
+- **G16: Purana WebView.** Hamara bundle Chromium 68+ maangta hai (LG ke liye `es2018` + core-js polyfills). Play TVs pe WebView auto-update hota hai. AOSP TVs pe purana ho sakta hai, isliye version-check message (Section 6.5). Android TV 9 emulator (WebView 66) pe verify kiya.
+- **G17: Text field pe pehla focus = keyboard.** Android TV pe input ko focus milte hi on-screen keyboard khul jaata hai (Help Desk mein aadhi screen dhak leta tha). Nayi screen ab text field pe focus nahi rakhti (`firstScreenControl`).
+- **G18: adb se boot test.** `adb reboot` saaf shutdown nahi hai, aur `appops set` lazily disk pe likha jaata hai, toh permission kho jaati hai. Pehle `adb shell appops write-settings`, phir `adb shell svc power reboot`.
+- **G19: Emulator crash (is laptop pe).** AMD Radeon Pro 5300M + Boot Camp pe emulator ka qemu crash hota hai. `-gpu swiftshader_indirect` se normal screens chalti hain, lekin Razorpay checkout (aur kabhi keyboard) har GPU mode mein crash karata hai. Payment asli TV pe test karo.
+- **G20: Java GitHub tak nahi pahunchta (is laptop pe).** Gradle distribution GitHub release assets pe hai; `curl` pahunch jaata hai. Zip `curl` se lo, `distributionSha256Sum` se match karo, `~/.gradle/wrapper/dists/gradle-<v>-bin/<hash>/` mein rakho.
 
 ---
 
 ## 13. Kaam ka order + checkpoints
 
-1. **Mac setup** (Section 8.1–8.5).
-2. **Web code** (Section 5) → `tsc`/`jest`/teeno webpack builds.
-3. **Wrapper** (Section 6) → keystore (8.6) → `npm run aab -- --debug --install` → AVD pe app khule.
-4. **Backend + admin Hotel mode + CORS** (Section 7) → tests → dev server pe deploy + `CORS_ORIGINS` env. Deploy Runjan ya team karegi.
-5. **Emulator test checklist** (Section 11).
-6. **Play Console** (Section 9): account type check → create app → listing → app content → internal testing → (closed test) → production.
-7. **Rollout** (Section 10): pehla hotel. OneTouch ka check pehle karo.
+1. ✅ **Machine setup** (Section 8.1–8.5). 3 Nov, Boot Camp Windows laptop pe.
+2. ✅ **Web code** (Section 5) → `tsc`/`jest`/teeno webpack builds. Commit `2e2bb70`.
+3. ✅ **Wrapper** (Section 6) → keystore (8.6) → `npm run aab -- --debug --install` → AVD pe app khule. Commit `63a8c88`; release AAB signed + verified.
+4. ✅ **Backend + admin Hotel mode + CORS** (Section 7). Backend `e83d1b1` dev pe live, `CORS_ORIGINS` set. Admin `f10d2bc` + `d77b6b3` push hue, **team ka deploy baaki**.
+5. ✅ **Emulator test checklist** (Section 11). Bache hue ⏳ items: Razorpay payment, keyboard input, Play build. Fixes: `ebce720`, `e26b95a`, `d8a966f`. **12 Nov:** asli Xiaomi TV pe auto-launch (boot + standby) fix aur test (7.5).
+6. ⏳ **Play Console** (Section 9): account type check → create app → listing → app content → internal testing → (closed test) → production. **Agla kaam.**
+7. ⏳ **Rollout** (Section 10): pehla hotel. OneTouch ka check pehle karo, Razorpay asli TV pe test karo.
 
 **Checkpoints:**
 - Har commit/push Runjan ke bolne pe hi.

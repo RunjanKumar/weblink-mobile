@@ -157,10 +157,11 @@ library's limits in its AAR: `minSdkVersion` in `AndroidManifest.xml`,
   alias is 0, so Home always opens theirs. `HotelMode.homeChoice()` reports
   this as `locked`; `chooser` / `default` only happen on TVs whose vendor
   launcher has priority 0 (some AOSP sets). Two levels for a hotel:
-  1. **Power-on only** (no adb): Hotel mode on + "Display over other apps"
-     allowed (the Welcome screen card opens that setting). BootReceiver opens
-     the app after a power-on (`BAL_ALLOW_SAW_PERMISSION`; verified on
-     Android 14 and 16). Home on the remote still opens the TV's launcher.
+  1. **Power-on and wake** (no adb): Hotel mode on + "Display over other
+     apps" allowed (the Welcome screen card opens that setting, then asks for
+     one restart from Settings). The app opens after a boot *and* when the TV
+     wakes from standby (see "Auto-launch" below). Home on the remote still
+     opens the TV's launcher.
   2. **Full home screen** (adb at install): also disable the stock launcher —
      `adb shell pm disable-user --user 0 com.google.android.tvlauncher`
      (Google TV: `com.google.android.apps.tv.launcherx`). Then Home opens the
@@ -169,6 +170,37 @@ library's limits in its AAR: `minSdkVersion` in `AndroidManifest.xml`,
      Turning Hotel mode off while that launcher is disabled keeps the app as
      Home (`HotelMode.otherHomeAvailable`) instead of leaving Android's black
      FallbackHome; Home goes back to the TV within a minute of re-enabling it.
+- **Auto-launch (Hotel mode), how it works.** Tuned on a real Xiaomi
+  MiTV-MOOQ1 (Android 10, 1.8 GB, `ro.config.low_ram=true`):
+  - Two processes. The main one runs the WebView (~150 MB). `:watch`
+    (~20 MB) holds the boot receivers, a `SCREEN_ON` receiver and a 1×1
+    transparent overlay window. The overlay makes it perceptible, so it is
+    neither frozen in standby nor the low-memory killer's first pick; the
+    main process, no longer held by the overlay, can be reclaimed while the
+    guest uses YouTube. Hotel mode prefs are `MODE_MULTI_PROCESS` and written
+    with `commit`; the main process pokes the watcher with an explicit,
+    foreground-queue broadcast (`HotelMode.syncWatcher`).
+  - Boot: `EarlyBootReceiver` (direct-boot aware, `LOCKED_BOOT_COMPLETED`)
+    fires before `BOOT_COMPLETED`, waits for the storage unlock, adds the
+    overlay and opens the app — before the TV's Home shows. `BOOT_COMPLETED`
+    goes to every app one at a time (226 on that TV): at default priority the
+    app opened ~3 min after power-on, at 999 ~40 s after Home. `BootReceiver`
+    stays as the fallback.
+  - Wake: the TV launcher reopens its Home ~0.1 s after the app comes up, so
+    `HotelMode.bringToFrontAndInsist` re-checks every 1.5 s for 12 s.
+  - The overlay grant can be lost to a power cut right after "Allow" on some
+    TVs (emulator; the Xiaomi kept it), hence the one-restart card
+    (`restartNeeded`, via `Settings.Global.BOOT_COUNT`).
+  - Xiaomi has no per-app overlay page: `openOverlaySettings` falls back to
+    the all-apps list.
+  - The app paints in 5–15 s on a 32-bit ARM TV: the window shows a Nexgen
+    splash and the WebView + page stay transparent until the first render.
+  - Not handled: a force-stopped app gets no broadcasts until opened by hand
+    (TV Manager's Memory boost / Optimise did *not* force-stop it).
+- **Testing on a real TV:** Developer options → USB debugging, then
+  `adb connect <TV-IP>:5555` (Xiaomi has no separate network-debugging switch)
+  and accept the prompt on the TV. `adb exec-out screencap` breaks there; use
+  `screencap -p /sdcard/x.png` + `adb pull`.
 - **Testing boot with adb:** `adb reboot` is not a clean shutdown, and app-op
   changes (`appops set …`) are written to disk lazily, so a permission granted
   just before is lost. Run `adb shell appops write-settings` first, and reboot
@@ -191,8 +223,20 @@ library's limits in its AAR: `minSdkVersion` in `AndroidManifest.xml`,
 - The `chooser` / `default` Hotel mode cases on a real TV whose launcher
   allows it (no emulator image has one).
 - Play Console listing assets: 1280×720 TV banner, 1920×1080 screenshots.
+- Level 2 on the Xiaomi: it also lists `com.duokan.factorytest` (a factory
+  test app) as a HOME at priority 0 — with the stock launcher disabled Home
+  may offer it, and `otherHomeAvailable` counts it as a launcher.
 
-Verified on emulators against the dev server (2026-11-03):
+Verified on a real Xiaomi MiTV-MOOQ1 (Android 10, WebView 157) against the dev
+server (2026-11-12), debug build: pairing ("Android TV 10 · Xiaomi
+MiTV-MOOQ1"), 1920 layout, overlay grant through the TV's own list, restart
+card; app opens before Home on a Settings restart and after pulling the plug;
+on wake from standby (from TV Home, over YouTube, after the main process was
+killed, after 14 min of standby with YouTube); TV Manager Memory boost +
+Optimise keep the watcher and do not force-stop; splash instead of a white
+screen.
+
+Verified on emulators against the dev server (2026-11-03/04):
 - Google TV 14: pairing, check-in → dashboard, all tiles + Back with focus
   return, D-pad, OK, offline/online card, checkout → Welcome, reinstall
   re-pairs without a duplicate, Hotel mode on/off, locked-TV setup card,
@@ -202,3 +246,5 @@ Verified on emulators against the dev server (2026-11-03):
 - Google TV 16 (target 36): power-on auto-open; `window.open` opens an
   overlay WebView that Back closes; `upi://` and off-site navigation blocked.
 - Android TV 9 (WebView 66): the "update Android System WebView" message.
+- Boot auto-open on Android 9 (no permission needed), 10, 11, 14, 16; wake
+  from standby with the overlay on Google TV 14 (30 min), 16 and Android TV 11.
