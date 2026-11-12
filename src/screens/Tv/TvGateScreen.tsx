@@ -156,16 +156,25 @@ function setupStep(status: HotelModeStatus): {
         action: null,
       };
     case 'locked':
-      // Nothing to do on the TV once the app may open itself after power-on.
-      return status.canDrawOverlays
-        ? null
-        : {
-            icon: 'power-outline',
-            title: 'Staff: let the app open on power-on',
+      if (status.needsOverlay && !status.canDrawOverlays) {
+        return {
+          icon: 'power-outline',
+          title: 'Staff: let the app open on power-on',
+          detail:
+            'This TV always keeps its own Home screen. Allow “Display over other apps”, and turn off Quick start in the TV’s settings.',
+          action: 'overlay',
+        };
+      }
+      // Until the TV restarts, a power cut can still lose the permission.
+      return status.restartNeeded
+        ? {
+            icon: 'refresh-outline',
+            title: 'Staff: restart this TV once',
             detail:
-              'This TV always keeps its own Home screen. Allow “Display over other apps”, and turn off Quick start in the TV’s settings.',
-            action: 'overlay',
-          };
+              'This saves the permission. Use the TV’s Settings → About → Restart, not the power button on the remote.',
+            action: null,
+          }
+        : null;
     default:
       return null;
   }

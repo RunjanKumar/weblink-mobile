@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Shown from the moment the app opens until the web app paints (the WebView is
+  transparent until then): 5–15 s on a 32-bit ARM TV, longer during a boot.
+  Same charcoal + logo as the launcher banner.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/boot_background" />
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/boot_logo" />
+    </item>
+</layer-list>

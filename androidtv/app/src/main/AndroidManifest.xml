@@ -36,6 +36,7 @@
       would make two TVs answer for the same room.
     -->
     <application
+        android:name=".NexgenApplication"
         android:allowBackup="false"
         android:banner="@drawable/banner"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -73,10 +74,39 @@
             </intent-filter>
         </activity-alias>
 
+        <!--
+          Hotel mode, power-on. LOCKED_BOOT_COMPLETED comes first and only to
+          direct-boot-aware receivers, so it is fast (see EarlyBootReceiver).
+        -->
+        <!--
+          Hotel mode runs in a small ":watch" process (see NexgenApplication): it
+          survives low-memory kills that take the ~150 MB WebView process.
+        -->
+        <receiver
+            android:name=".WatchSyncReceiver"
+            android:exported="false"
+            android:process=":watch" />
+
+        <receiver
+            android:name=".EarlyBootReceiver"
+            android:directBootAware="true"
+            android:exported="true"
+            android:process=":watch">
+            <intent-filter android:priority="999">
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!--
+          Fallback. BOOT_COMPLETED reaches manifest receivers one at a time, highest
+          priority first. A Xiaomi MiTV-MOOQ1 has 226 of them: at the default
+          priority the app opened ~3 minutes after power-on.
+        -->
         <receiver
             android:name=".BootReceiver"
-            android:exported="true">
-            <intent-filter>
+            android:exported="true"
+            android:process=":watch">
+            <intent-filter android:priority="999">
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>

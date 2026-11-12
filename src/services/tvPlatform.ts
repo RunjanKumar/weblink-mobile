@@ -21,8 +21,12 @@ export interface HotelModeStatus {
   home: HomeChoice;
   /** The launcher Home opens instead of this app, for "default" / "locked". */
   homeLabel?: string;
-  /** "Display over other apps" — lets the boot receiver open the app on Android 10+. */
+  /** This TV needs "Display over other apps" to open the app by itself (Android 10+, not Home). */
+  needsOverlay: boolean;
+  /** "Display over other apps" — lets the app open itself on power-on and wake. */
   canDrawOverlays: boolean;
+  /** Granted, but the TV has not restarted since — a power cut could still lose the grant. */
+  restartNeeded: boolean;
 }
 
 export type Probe<T> = {ok: true; value: T} | {ok: false; error: string};

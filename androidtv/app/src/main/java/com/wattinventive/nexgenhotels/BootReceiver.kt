@@ -13,11 +13,8 @@ import android.content.Intent
  */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (!HotelMode.isOn(context)) {
-            return
+        if (HotelMode.isOn(context)) {
+            HotelMode.bringToFront(context)
         }
-        context.startActivity(
-            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-        )
     }
 }

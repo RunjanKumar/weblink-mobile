@@ -121,14 +121,24 @@ function HotelModeInfo() {
                 : 'This TV (Google TV) never lets another app be its Home. Nexgen Hotels opens on power-on instead: allow “Display over other apps” below and turn off Quick start / Instant-on in the TV’s settings.'}
             </Text>
           ) : null}
-          <Divider />
-          <MetaRow
-            icon="layers-outline"
-            label="Display over other apps"
-            value={status.canDrawOverlays ? 'Allowed' : 'Not allowed'}
-            valueColor={status.canDrawOverlays ? DS.good : undefined}
-          />
-          {status.canDrawOverlays ? null : (
+          {status.needsOverlay ? (
+            <>
+              <Divider />
+              <MetaRow
+                icon="layers-outline"
+                label="Display over other apps"
+                value={
+                  !status.canDrawOverlays
+                    ? 'Not allowed'
+                    : status.restartNeeded
+                      ? 'Allowed — restart the TV once'
+                      : 'Allowed'
+                }
+                valueColor={status.canDrawOverlays ? DS.good : undefined}
+              />
+            </>
+          ) : null}
+          {!status.needsOverlay || status.canDrawOverlays ? null : (
             <>
               <GlassButton
                 label="Allow (opens on power-on, Android 10+)"

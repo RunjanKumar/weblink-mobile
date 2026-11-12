@@ -88,6 +88,13 @@ class MainActivity : ComponentActivity() {
         wv.loadUrl(START_URL)
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Staff may be back from granting "Display over other apps", or the TV
+        // may have killed the watcher process: (re)start it.
+        HotelMode.syncWatcher(this)
+    }
+
     /**
      * The remote's OK is DPAD_CENTER. The web app treats Enter (keyCode 13) as OK,
      * exactly as on LG / Samsung, so send it as Enter on every WebView version.
@@ -142,7 +149,8 @@ class MainActivity : ComponentActivity() {
             .build()
 
         return WebView(this).apply {
-            setBackgroundColor(ContextCompat.getColor(context, R.color.boot_background))
+            // Transparent: the window's splash shows through until the page paints.
+            setBackgroundColor(Color.TRANSPARENT)
             secure(settings)
             settings.domStorageEnabled = true // the pairing token lives in localStorage
             // web/index.html pins the viewport to 1920 for this build; without

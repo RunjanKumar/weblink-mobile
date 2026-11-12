@@ -65,17 +65,21 @@ class TvBridge(private val activity: MainActivity) {
         )
     }
 
-    /** False when the TV has no "Display over other apps" screen (many don't). */
+    /**
+     * "Display over other apps": this app's own page, else the list of all apps
+     * (Xiaomi MiTV-MOOQ1 has only the list), else false — the TV has neither and
+     * staff grant it over adb.
+     */
     @JavascriptInterface
-    fun openOverlaySettings(): Boolean = try {
-        activity.startActivity(
-            Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                "package:${activity.packageName}".toUri(),
-            ),
-        )
-        true
-    } catch (e: ActivityNotFoundException) {
-        false
+    fun openOverlaySettings(): Boolean = listOf(
+        Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:${activity.packageName}".toUri()),
+        Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION),
+    ).any { intent ->
+        try {
+            activity.startActivity(intent)
+            true
+        } catch (e: ActivityNotFoundException) {
+            false
+        }
     }
 }

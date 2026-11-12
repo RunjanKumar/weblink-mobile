@@ -10,6 +10,18 @@
       useWideViewPort + loadWithOverviewMode) so it matches LG pixel for pixel.
     -->
     <meta name="viewport" content="width=1920, user-scalable=no" />
+    <!--
+      Transparent until the app first renders (the script after #root removes
+      this): the wrapper's WebView is transparent too, so its Nexgen splash
+      (androidtv/ res/drawable/boot_splash.xml) shows during the 5–15 s the
+      bundle takes to start on a TV, instead of a blank page.
+    -->
+    <style id="boot-transparent">
+      html,
+      body {
+        background: transparent !important;
+      }
+    </style>
     <% } else { %>
     <!--
       LG webOS renders at a fixed 1920x1080. `user-scalable=no` stops the remote's
@@ -90,6 +102,21 @@
   </head>
   <body>
     <div id="root"></div>
+    <% if (tvTarget === 'androidtv') { %>
+    <script>
+      // The first render paints a full-screen backdrop: hand the background back.
+      (function () {
+        var root = document.getElementById('root');
+        new MutationObserver(function (_, observer) {
+          if (root.childNodes.length) {
+            var style = document.getElementById('boot-transparent');
+            if (style) style.parentNode.removeChild(style);
+            observer.disconnect();
+          }
+        }).observe(root, {childList: true});
+      })();
+    </script>
+    <% } %>
     <!--
       A TV has no reachable console: on webOS you would need `ares-inspect` over
       the network just to read a stack trace, and a startup crash otherwise shows

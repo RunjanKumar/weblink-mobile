@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Keep in sync with the html/body background in web/index.html. -->
-    <color name="boot_background">#FFF5F2EE</color>
-    <color name="message_text">#FF2B2622</color>
+    <!-- Splash behind the transparent WebView until the web app paints; matches the banner. -->
+    <color name="boot_background">#FF262425</color>
+    <color name="message_text">#FFF5F2EE</color>
 </resources>
