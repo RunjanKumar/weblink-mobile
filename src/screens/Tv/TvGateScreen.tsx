@@ -161,7 +161,7 @@ function setupStep(status: HotelModeStatus): {
           icon: 'power-outline',
           title: 'Staff: let the app open on power-on',
           detail:
-            'This TV always keeps its own Home screen. Allow “Display over other apps”, and turn off Quick start in the TV’s settings.',
+            'This TV always keeps its own Home screen. Allow “Display over other apps” so the app opens whenever the TV is switched on.',
           action: 'overlay',
         };
       }

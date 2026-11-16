@@ -118,7 +118,7 @@ function HotelModeInfo() {
               }}>
               {status.home === 'default'
                 ? `In the TV's Settings → Apps → ${status.homeLabel || 'that app'}, choose “Clear defaults”, then come back and press “Set as Home app”.`
-                : 'This TV (Google TV) never lets another app be its Home. Nexgen Hotels opens on power-on instead: allow “Display over other apps” below and turn off Quick start / Instant-on in the TV’s settings.'}
+                : 'This TV never lets another app be its Home. Nexgen Hotels opens whenever the TV is switched on instead: allow “Display over other apps” below.'}
             </Text>
           ) : null}
           {status.needsOverlay ? (

@@ -90,9 +90,22 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        webView?.onResume()
         // Staff may be back from granting "Display over other apps", or the TV
         // may have killed the watcher process: (re)start it.
         HotelMode.syncWatcher(this)
+    }
+
+    /**
+     * Hides the page whenever the app loses the front, not only once it is fully
+     * covered. TV settings slide in as a side panel (Xiaomi's "Display over other
+     * apps" does) and leave the app visible behind it, so without this the page
+     * never hears it was left — and the Hotel mode card on the Welcome screen
+     * would not re-read the permission when staff come back.
+     */
+    override fun onPause() {
+        webView?.onPause()
+        super.onPause()
     }
 
     /**
