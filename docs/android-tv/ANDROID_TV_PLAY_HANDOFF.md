@@ -806,11 +806,12 @@ Jab tak Google review chal raha hai, ye account/room/guest mat chhedna.
 > - ✅ Pairing, admin mein "Android TV 14 · …", 1920 layout, 8 tiles + View Bill + Cart + ⋮ Menu, Back aur focus wapsi, D-pad, OK, offline/online card, checkout → Welcome, uninstall + reinstall (naya code, pichhla room suggest, duplicate nahi), coming-soon tiles nahi, purana WebView message (Android 9).
 > - ✅ Hotel mode: ON/OFF, locked detection + staff card + Allow, power-on (Google TV 14 + 16), Level 2 Home/Back/boot (Android TV 14), launcher disabled + OFF = kaali screen nahi.
 > - ✅ Popup: `window.open` overlay WebView, Back se band; `upi://` aur doosri site pe navigation block.
-> - ⏳ **Razorpay asli payment**: emulator crash karta hai (G19), asli TV pe karna hai. Pehle confirm karo ki dev ki Razorpay key `rzp_test_` hai.
-> - ⏳ On-screen keyboard se text input (emulator mein keyboard bhi kabhi crash karata hai).
+> - ✅ **Razorpay: TV pe test karne ko kuch nahi** (16 Nov sahi kiya). TV pe online payment hai hi nahi: TV ka order hamesha "Billed to your room · pay at checkout" hota hai (`placeTvOrder`, `TvFoodParts.tsx`). Razorpay sirf phone/web link pe hai.
+> - ✅ **16 Nov: On-screen keyboard (Xiaomi, Gboard TV 17.3).** Typing chalti hai, par keyboard ka **Send** message nahi bhejta tha: Gboard Send ko "word abhi type ho raha hai" (composition) ke beech Enter ki tarah bhejta hai, aur react-native-web aisa Enter ignore karta hai. Fix: `tvSubmitProps` (Help Desk message + Cart coupon), Send pe bhejo aur keyboard band. Emulator (Android 10, wahi Gboard) pe verify. **1.0.3 (versionCode 4) mein.**
 > - ✅ **12 Nov: Play se install hua build** (internal testing, versionCode 1, Google ka signing cert SHA-256 `32:DA:B7:8B…AE:E9`) Xiaomi pe: pairing, Hotel mode staff card, Allow → TV ki overlay list, standby se on karne pe app khud khuli.
 >   - Kami mili: Xiaomi ki overlay list ek **side panel** hai. App uske peeche "paused" rehti hai, hide nahi hoti, isliye wapas aane pe card "Allow" pe hi atka raha (power off/on ke baad sahi hua). Fix: `MainActivity.onPause` mein WebView pause. Emulator pe translucent dialog se verify kiya. 1.0.1 (versionCode 2) mein gaya.
->   - **16 Nov, dusri kami:** Play se 1.0.1 ka update aaya toh Android ne app ke dono processes band kar diye, watcher bhi. Agle restart tak standby se on karne pe app nahi khulti. Hotels mein Play raat ko, TV standby mein, khud update karega, isliye ye har release pe hota. Fix: `WatchSyncReceiver` ab `MY_PACKAGE_REPLACED` bhi leta hai, toh update ke turant baad watcher + overlay wapas. Emulator (Android 10) pe update → standby → app khuli, verify kiya. **Production 1.0.2 (versionCode 3) se.**
+>   - **16 Nov, dusri kami:** Play se 1.0.1 ka update aaya toh Android ne app ke dono processes band kar diye, watcher bhi. Agle restart tak standby se on karne pe app nahi khulti. Hotels mein Play raat ko, TV standby mein, khud update karega, isliye ye har release pe hota. Fix: `WatchSyncReceiver` ab `MY_PACKAGE_REPLACED` bhi leta hai, toh update ke turant baad watcher + overlay wapas. Emulator (Android 10) pe update → standby → app khuli, verify kiya. 1.0.2 (versionCode 3) mein gaya.
+>   - ✅ **16 Nov: 1.0.2 Play se Xiaomi pe:** update ke turant baad watcher + overlay wapas, Home → standby → on pe app khud khuli. Side panel mein permission OFF → Back pe card turant "Allow", ON → Back pe turant "restart this TV once". Settings → Restart pe app khud khuli (EarlyBootReceiver) aur card gayab.
 
 **Code ke baad (Mac):**
 - weblink-mobile: `npx tsc --noEmit`, `npx jest`.
@@ -825,9 +826,9 @@ Jab tak Google review chal raha hai, ye account/room/guest mat chhedna.
 - [ ] 10 tiles ka tour: har screen khule, Back se dashboard pe aaye.
 - [ ] D-pad focus ring, OK (DPAD_CENTER) se activate, number keys.
 - [ ] Back: modal band → screen pop → root pe **TV Home** (Hotel mode off).
-- [ ] On-screen keyboard se text input.
+- [x] On-screen keyboard se text input (Send key fix 1.0.3 mein).
 - [ ] Network off/on (emulator → Settings → Wi-Fi) pe offline card aur "Back online" toast.
-- [ ] Razorpay (test mode): QR/UPI dikhe, popup app ko replace na kare.
+- [x] Razorpay: TV pe nahi hai (orders room bill pe). Popup overlay sirf safety ke liye hai.
 - [ ] Checkout pe Welcome. Doosre room mein move pe refresh.
 - [ ] App update (`install -r`) ke baad pairing bani rahe. Uninstall + reinstall pe naya pair, aur admin mein **duplicate na bane** (same ANDROID_ID).
 - [ ] Coming-soon tiles na dikhein.
@@ -878,9 +879,9 @@ Jab tak Google review chal raha hai, ye account/room/guest mat chhedna.
 2. ✅ **Web code** (Section 5) → `tsc`/`jest`/teeno webpack builds. Commit `2e2bb70`.
 3. ✅ **Wrapper** (Section 6) → keystore (8.6) → `npm run aab -- --debug --install` → AVD pe app khule. Commit `63a8c88`; release AAB signed + verified.
 4. ✅ **Backend + admin Hotel mode + CORS** (Section 7). Backend `e83d1b1` dev pe live, `CORS_ORIGINS` set. Admin `f10d2bc` + `d77b6b3` push hue, **team ka deploy baaki**.
-5. ✅ **Emulator test checklist** (Section 11). Bache hue ⏳ items: Razorpay payment, keyboard input, Play build. Fixes: `ebce720`, `e26b95a`, `d8a966f`. **12 Nov:** asli Xiaomi TV pe auto-launch (boot + standby) fix aur test (7.5).
-6. ⏳ **Play Console** (Section 9): account type check → create app → listing → app content → internal testing → (closed test) → production. **12 Nov:** Organization account (closed test ki zaroorat nahi), app + TV listing bani, internal testing live, Play build Xiaomi pe install + test hua. Baaki: App content, store settings, trader status, phir 1.0.2 (versionCode 3: overlay card + update ke baad watcher) → production.
-7. ⏳ **Rollout** (Section 10): pehla hotel. OneTouch ka check pehle karo, Razorpay asli TV pe test karo.
+5. ✅ **Emulator test checklist** (Section 11). Bache hue ⏳ items: koi nahi (keyboard ✅, Razorpay TV pe hai hi nahi, Play build ✅ 16 Nov). Fixes: `ebce720`, `e26b95a`, `d8a966f`. **12 Nov:** asli Xiaomi TV pe auto-launch (boot + standby) fix aur test (7.5).
+6. ⏳ **Play Console** (Section 9): account type check → create app → listing → app content → internal testing → (closed test) → production. **12 Nov:** Organization account (closed test ki zaroorat nahi), app + TV listing bani, internal testing live, Play build Xiaomi pe install + test hua. Baaki: App content, store settings, trader status, phir 1.0.3 (versionCode 4: overlay card + update ke baad watcher + keyboard Send) → production.
+7. ⏳ **Rollout** (Section 10): pehla hotel. OneTouch ka check pehle karo.
 
 **Checkpoints:**
 - Har commit/push Runjan ke bolne pe hi.

@@ -23,8 +23,8 @@ android {
         // Play: new apps must target the latest API; Android TV apps at least 34.
         targetSdk = 36
         // +1 for every Play upload.
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.0.3"
     }
 
     signingConfigs {

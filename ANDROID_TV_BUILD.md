@@ -220,17 +220,22 @@ library's limits in its AAR: `minSdkVersion` in `AndroidManifest.xml`,
   5300M under Boot Camp). Start it with `-gpu swiftshader_indirect` — that
   covers normal screens, but opening Razorpay checkout (and once, the
   on-screen keyboard) still crashes it in every GPU mode tried (host,
-  swiftshader, guest, `-feature -Vulkan`). Test payments on a real TV.
+  swiftshader, guest, `-feature -Vulkan`). The TV app itself never opens
+  checkout: TV orders go on the room bill (`placeTvOrder`).
 - **No keyboard on arrival.** Focus seeding skips text fields, so a screen
   like Help Desk does not open the on-screen keyboard until the guest moves to
   the message box.
+- **The keyboard's Send key arrives mid-composition.** Gboard for TV keeps
+  the word being typed open as an IME composition, and its action key comes as
+  an Enter with `isComposing` set, which react-native-web ignores — the Help
+  Desk message did not send (Xiaomi, Gboard 17.3). TV inputs that submit on
+  Enter spread `tvSubmitProps(onSubmit)` instead of `onSubmitEditing`; it also
+  closes the keyboard, which covers the bottom of the screen.
 
 ---
 
 ## Not yet done
 
-- A real Razorpay payment (the emulator crashes on its checkout — see Gotchas).
-  Confirm first whether the dev server's Razorpay key is `rzp_test_`.
 - The `chooser` / `default` Hotel mode cases on a real TV whose launcher
   allows it (no emulator image has one).
 - Play: App content, store settings, trader status, production release.
@@ -246,6 +251,13 @@ on wake from standby (from TV Home, over YouTube, after the main process was
 killed, after 14 min of standby with YouTube); TV Manager Memory boost +
 Optimise keep the watcher and do not force-stop; splash instead of a white
 screen.
+
+Same TV, Play internal testing (2026-11-16): 1.0.1 updated from Play left no
+process and the next wake showed Home; 1.0.2 restarts the watcher and its
+overlay right after the update, and the next wake opens the app. The setup
+card follows the overlay side panel both ways (off → "Allow", on → "restart
+this TV once") without leaving the app; a Settings restart opens the app and
+clears the card.
 
 Verified on emulators against the dev server (2026-11-03/04):
 - Google TV 14: pairing, check-in → dashboard, all tiles + Back with focus
