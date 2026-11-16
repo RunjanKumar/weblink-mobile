@@ -72,6 +72,9 @@ requires Java 21 and a system `JAVA_HOME` may be older.
      Console, but no update can ship until it is.
    - Upload certificate SHA-256 (to recognise it):
      `5F:E5:F9:F5:2D:EC:6B:0A:65:BE:30:28:26:5D:54:AE:36:FC:E3:76:29:86:51:C2:D3:D9:C7:22:89:C7:C6:AD`
+   - Play app-signing certificate SHA-256 (what installs from Play, and the
+     universal APK below, are signed with):
+     `32:DA:B7:8B:A3:FD:2A:7D:A1:D1:4A:3F:44:55:16:32:47:B8:C4:1B:A2:3E:09:A0:ED:F3:95:C8:29:E1:AE:E9`
 
 ---
 
@@ -192,7 +195,10 @@ library's limits in its AAR: `minSdkVersion` in `AndroidManifest.xml`,
     TVs (emulator; the Xiaomi kept it), hence the one-restart card
     (`restartNeeded`, via `Settings.Global.BOOT_COUNT`).
   - Xiaomi has no per-app overlay page: `openOverlaySettings` falls back to
-    the all-apps list.
+    the all-apps list. That list is a translucent side panel: the app stays
+    *paused but visible* behind it, which never fires `visibilitychange`, so
+    the setup card kept asking for the permission after it was granted.
+    `MainActivity.onPause` now pauses the WebView, which hides the page.
   - The app paints in 5–15 s on a 32-bit ARM TV: the window shows a Nexgen
     splash and the WebView + page stay transparent until the first render.
   - Not handled: a force-stopped app gets no broadcasts until opened by hand
@@ -222,7 +228,7 @@ library's limits in its AAR: `minSdkVersion` in `AndroidManifest.xml`,
   Confirm first whether the dev server's Razorpay key is `rzp_test_`.
 - The `chooser` / `default` Hotel mode cases on a real TV whose launcher
   allows it (no emulator image has one).
-- Play Console listing assets: 1280×720 TV banner, 1920×1080 screenshots.
+- Play: App content, store settings, trader status, production release.
 - Level 2 on the Xiaomi: it also lists `com.duokan.factorytest` (a factory
   test app) as a HOME at priority 0 — with the stock launcher disabled Home
   may offer it, and `otherHomeAvailable` counts it as a launcher.
