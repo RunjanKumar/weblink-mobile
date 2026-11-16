@@ -13,6 +13,7 @@ import {
   TvFooter,
   TvPressable,
   TvTopBar,
+  tvSubmitProps,
 } from '../../components/TvGlass';
 import {useCartViewModel} from '../../viewmodels';
 import {useFoodOrder} from '../../store/FoodOrderContext';
@@ -97,7 +98,7 @@ function CouponField({
         onChangeText={onChange}
         onFocus={onFocus}
         onBlur={onBlur}
-        onSubmitEditing={onSubmit}
+        {...tvSubmitProps(onSubmit)}
         editable={editable}
         placeholder="COUPON CODE"
         placeholderTextColor={DS.muted}

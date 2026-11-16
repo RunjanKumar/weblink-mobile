@@ -47,3 +47,4 @@ export {
   roomIconFor,
 } from './RoomIcons';
 export type {RoomIconName} from './RoomIcons';
+export {tvSubmitProps} from './tvSubmit';

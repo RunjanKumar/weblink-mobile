@@ -16,6 +16,7 @@ import {
   TvPressable,
   TvTopBar,
   toSource,
+  tvSubmitProps,
 } from '../../components/TvGlass';
 import {useChatViewModel} from '../../viewmodels/ChatViewModel';
 import {useServiceCatalogViewModel} from '../../viewmodels';
@@ -542,8 +543,7 @@ export function TvChatScreen({navigation}: Props) {
               <TextInput
                 value={vm.inputText}
                 onChangeText={vm.setInputText}
-                onSubmitEditing={vm.sendMessage}
-                blurOnSubmit={false}
+                {...tvSubmitProps(vm.sendMessage)}
                 returnKeyType="send"
                 placeholder={connected ? 'Type your message...' : 'Waiting for connection...'}
                 placeholderTextColor={DS.muted}
