@@ -19,6 +19,7 @@ import {
   tvSubmitProps,
 } from '../../components/TvGlass';
 import {useChatViewModel} from '../../viewmodels/ChatViewModel';
+import {useTvKeyboardInset} from '../../hooks';
 import {useServiceCatalogViewModel} from '../../viewmodels';
 import {useAuth} from '../../store/AuthContext';
 import {MESSAGE_STATUS} from '../../constants/socket';
@@ -49,6 +50,9 @@ type Props = NativeStackScreenProps<HomeStackParamList, 'Chat'>;
 
 /** Quick Services rows the Figma shows; six fits the column without scrolling. */
 const QUICK_SERVICE_LIMIT = 6;
+
+/** Space between the message box and the top of the on-screen keyboard. */
+const KEYBOARD_GAP = 12;
 
 /* ── Front-desk bell mark (the Figma's avatar glyph) ── */
 function BellAvatar({size = 34}: {size?: number}) {
@@ -274,6 +278,7 @@ export function TvChatScreen({navigation}: Props) {
   const rootNavigation = useNavigation();
   const scrollRef = useRef<ScrollView>(null);
   const [atBottom, setAtBottom] = useState(true);
+  const keyboard = useTvKeyboardInset();
 
   const rootNavigate = (name: string, params?: object) =>
     (rootNavigation as unknown as {navigate: (n: string, p?: object) => void}).navigate(
@@ -330,6 +335,18 @@ export function TvChatScreen({navigation}: Props) {
       scrollRef.current?.scrollToEnd({animated: false});
     }
   }, [atBottom]);
+
+  /**
+   * Keyboard open: like a phone chat, the conversation shrinks to the space
+   * above it, the message box sits right on top of it, and the latest message
+   * stays in view. The top bar and footer step aside to leave room for it; the
+   * keyboard covers the right-hand column anyway.
+   */
+  useEffect(() => {
+    if (keyboard) {
+      requestAnimationFrame(() => scrollRef.current?.scrollToEnd({animated: false}));
+    }
+  }, [keyboard]);
 
   const connected = vm.connectionStatus === 'connected';
   const hasText = vm.inputText.trim().length > 0;
@@ -391,10 +408,16 @@ export function TvChatScreen({navigation}: Props) {
     <SafeAreaView style={{flex: 1, backgroundColor: DS.pageBg}} edges={['top']}>
       <TvBackdrop />
 
-      <View style={{flex: 1, paddingHorizontal: DS.margin, paddingTop: DS.margin, paddingBottom: 14}}>
-        <TvTopBar />
+      <View
+        style={{
+          flex: 1,
+          paddingHorizontal: DS.margin,
+          paddingTop: DS.margin,
+          paddingBottom: keyboard ? keyboard + KEYBOARD_GAP : 14,
+        }}>
+        {keyboard ? null : <TvTopBar />}
 
-        <View style={{flex: 1, flexDirection: 'row', marginTop: 16}}>
+        <View style={{flex: 1, flexDirection: 'row', marginTop: keyboard ? 0 : 16}}>
           {/* ── Left: the conversation ── */}
           <GlassPanel style={{flex: 1, marginRight: DS.gap, padding: 16}}>
             {/* Header */}
@@ -573,7 +596,7 @@ export function TvChatScreen({navigation}: Props) {
           </GlassPanel>
 
           {/* ── Right: front desk + quick services ── */}
-          <View style={{width: 330}}>
+          <View style={{width: 330, overflow: keyboard ? 'hidden' : undefined}}>
             <GlassPanel style={{padding: 14, marginBottom: DS.gap}}>
               <Text
                 style={{
@@ -613,7 +636,7 @@ export function TvChatScreen({navigation}: Props) {
               />
             </GlassPanel>
 
-            <GlassPanel style={{flex: 1, padding: 14}}>
+            <GlassPanel style={{flex: 1, padding: 14, display: keyboard ? 'none' : 'flex'}}>
               <Text
                 style={{
                   color: DS.text,
@@ -691,7 +714,7 @@ export function TvChatScreen({navigation}: Props) {
           </View>
         </View>
 
-        <TvFooter marginTop={12} />
+        {keyboard ? null : <TvFooter marginTop={12} />}
       </View>
     </SafeAreaView>
   );

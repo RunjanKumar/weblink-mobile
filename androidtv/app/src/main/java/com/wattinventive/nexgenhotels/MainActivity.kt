@@ -2,7 +2,9 @@ package com.wattinventive.nexgenhotels
 
 import android.annotation.SuppressLint
 import android.graphics.Color
+import android.graphics.Rect
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Message
 import android.util.Log
@@ -21,7 +23,10 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.Insets
 import androidx.core.net.toUri
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewCompat
 
@@ -33,6 +38,7 @@ import androidx.webkit.WebViewCompat
  *  - exposes `window.NexgenTV` (TvBridge) and tags the user agent so the web
  *    app knows it is in this APK,
  *  - forwards the remote's Back to the web app as a `nexgen:back` event,
+ *  - tells it how much of the screen the on-screen keyboard covers (`nexgen:keyboard`),
  *  - shows Razorpay's popups (3-D Secure, netbanking) over the app.
  */
 class MainActivity : ComponentActivity() {
@@ -42,6 +48,9 @@ class MainActivity : ComponentActivity() {
 
     /** A window the web app opened with window.open — only Razorpay does. */
     private var popup: WebView? = null
+
+    /** The keyboard's share of the screen last reported to the page. */
+    private var keyboardShare = 0f
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,6 +78,7 @@ class MainActivity : ComponentActivity() {
         webView = wv
         root.addView(wv, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         wv.requestFocus()
+        reportKeyboard(wv)
 
         // The remote's Back never reaches the page as a keydown on Android TV,
         // so hand it over explicitly. The web app decides: close a dialog, pop a
@@ -86,6 +96,51 @@ class MainActivity : ComponentActivity() {
         // Always the start page — also after recreate(), where the old page state
         // is gone with the crashed renderer.
         wv.loadUrl(START_URL)
+    }
+
+    /**
+     * The window is fullscreen, and Android never resizes a fullscreen window for
+     * the keyboard: it covers the bottom of the page, and the page cannot tell. So
+     * measure what it covers and report it as a share of the screen in
+     * `window.__nexgenKeyboard` (0 when closed) with a `nexgen:keyboard` event.
+     * The page is not resized either: only a screen that wants to (Help Desk)
+     * lays itself out above the keyboard; the rest stay as they are.
+     */
+    private fun reportKeyboard(wv: WebView) {
+        // A recent WebView also answers the keyboard itself when it is told of it,
+        // by shrinking the visible area and panning the page up (Google TV 16,
+        // WebView 143). Together with the page's own layout that pushed Help Desk
+        // off the top of the screen, so the WebView is not told.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            ViewCompat.setOnApplyWindowInsetsListener(wv) { view, insets ->
+                ViewCompat.onApplyWindowInsets(
+                    view,
+                    WindowInsetsCompat.Builder(insets)
+                        .setInsets(WindowInsetsCompat.Type.ime(), Insets.NONE)
+                        .build(),
+                )
+            }
+        }
+        val visible = Rect()
+        val location = IntArray(2)
+        root.viewTreeObserver.addOnGlobalLayoutListener {
+            val height = root.height
+            if (height == 0) {
+                return@addOnGlobalLayoutListener
+            }
+            root.getWindowVisibleDisplayFrame(visible)
+            root.getLocationOnScreen(location)
+            val covered = (location[1] + height - visible.bottom).coerceAtLeast(0)
+            // Anything this small is not a keyboard.
+            val share = if (covered > height * MIN_KEYBOARD_SHARE) covered.toFloat() / height else 0f
+            if (share != keyboardShare) {
+                keyboardShare = share
+                wv.evaluateJavascript(
+                    "window.__nexgenKeyboard=$share;window.dispatchEvent(new Event('nexgen:keyboard'))",
+                    null,
+                )
+            }
+        }
     }
 
     override fun onResume() {
@@ -277,6 +332,7 @@ class MainActivity : ComponentActivity() {
         private const val APP_HOST = "appassets.androidplatform.net"
         private const val START_URL = "https://$APP_HOST/assets/www/index.html"
         private const val MIN_CHROMIUM = 68
+        private const val MIN_KEYBOARD_SHARE = 0.15f
 
         /** No file:// or content:// — the bundle comes from WebViewAssetLoader (Play flags file access). */
         private fun secure(settings: WebSettings) {
