@@ -227,6 +227,7 @@ function DashboardHeader({
   loading,
   error,
   onFeedback,
+  showFeedback,
   onProfile,
   onSettings,
   onRefresh,
@@ -237,6 +238,8 @@ function DashboardHeader({
   loading: boolean;
   error: string | null;
   onFeedback: () => void;
+  /** False where the hotel switched the Feedback module off. */
+  showFeedback: boolean;
   onProfile: () => void;
   onSettings: () => void;
   onRefresh: () => void;
@@ -260,7 +263,9 @@ function DashboardHeader({
         {label: 'Log out', value: 'logout', variant: 'danger'},
         {label: 'Settings', value: 'settings', variant: 'secondary'},
         {label: 'Profile', value: 'profile', variant: 'secondary'},
-        {label: 'Share feedback', value: 'feedback', variant: 'primary'},
+        ...(showFeedback
+          ? [{label: 'Share feedback', value: 'feedback', variant: 'primary' as const}]
+          : []),
       ],
     });
     if (choice === 'feedback') {
@@ -718,6 +723,7 @@ export function DashboardScreen({navigation}: Props) {
           loading={dash.isLoading}
           error={dash.profileError}
           onFeedback={() => navigation.navigate('Feedback')}
+          showFeedback={dash.showFeedback}
           onProfile={() => navigation.navigate('Profile')}
           onSettings={() => navigation.navigate('Settings')}
           onRefresh={refreshAll}

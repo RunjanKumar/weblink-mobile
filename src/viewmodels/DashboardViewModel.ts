@@ -57,6 +57,8 @@ export function useDashboardViewModel() {
     // DINCHARYA as off without the Clinical module. Hidden until the profile
     // has loaded, so the tile never flashes up and disappears.
     showMyDay: profile ? isPortalModuleEnabled(profile.portalModules, 'DINCHARYA') : false,
+    // Feedback where the hotel offers it (the server refuses it otherwise).
+    showFeedback: isPortalModuleEnabled(profile?.portalModules, 'FEEDBACK'),
     quickCalls: quickCallsQuery.data ?? [],
     // Per-section flags: a profile failure must NOT blank the whole
     // dashboard (reference renders an inline greeting error and keeps the

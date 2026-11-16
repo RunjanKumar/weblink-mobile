@@ -95,7 +95,8 @@ function Star({star, filled, onPress}: {star: number; filled: boolean; onPress: 
 }
 
 export function TvFeedbackScreen({navigation}: Props) {
-  const {star, setStar, notes, setNotes, submit, isSubmitting, error} = useFeedbackViewModel();
+  const {star, setStar, notes, setNotes, submit, offered, canSubmit, isSubmitting, error} =
+    useFeedbackViewModel();
   const noteFocus = useTVFocus();
   const parts = splitNote(notes);
 
@@ -333,8 +334,8 @@ export function TvFeedbackScreen({navigation}: Props) {
 
           <View style={{flex: 1}} />
 
-          {/* The API accepts a note-only submission, so the button is not gated
-              on a star — but the guest is told which one carries the weight. */}
+          {/* The API needs a 1–5 star rating (the note is optional), so the
+              button waits for one. A hotel that switched Feedback off takes none. */}
           <Text
             style={{
               color: DS.muted,
@@ -343,14 +344,16 @@ export function TvFeedbackScreen({navigation}: Props) {
               marginBottom: 10,
               fontFamily: FONT,
             }}>
-            {star > 0
-              ? 'Thank you — press SUBMIT and we will pass this on.'
-              : 'A star rating helps us the most, but you can send just a note.'}
+            {!offered
+              ? 'This hotel is not taking feedback here. Please speak to the front desk.'
+              : star > 0
+                ? 'Thank you — press SUBMIT and we will pass this on.'
+                : 'Choose a star rating first. A note is optional.'}
           </Text>
           <GoldButton
             label={isSubmitting ? 'Submitting…' : 'Submit'}
             icon={isSubmitting ? null : 'send-outline'}
-            disabled={isSubmitting}
+            disabled={isSubmitting || !canSubmit}
             onPress={onSubmit}
             height={46}
           />

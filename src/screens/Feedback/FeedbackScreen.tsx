@@ -27,7 +27,8 @@ type Props = NativeStackScreenProps<HomeStackParamList, 'Feedback'>;
  */
 export function FeedbackScreen({navigation}: Props) {
   const {theme} = useTheme();
-  const {star, setStar, notes, setNotes, submit, isSubmitting, error} = useFeedbackViewModel();
+  const {star, setStar, notes, setNotes, submit, offered, canSubmit, isSubmitting, error} =
+    useFeedbackViewModel();
 
   // Reference surfaces API failures as toasts, not inline banners.
   React.useEffect(() => {
@@ -90,8 +91,23 @@ export function FeedbackScreen({navigation}: Props) {
 
           <View className="flex-1" />
 
+          {/* A star is required (the message is optional); a hotel that switched
+              Feedback off takes none, so say so rather than fail on submit. */}
+          {!offered || star === 0 ? (
+            <Text className="mt-6 text-center text-sm text-content-tertiary">
+              {offered
+                ? 'Choose a star rating to send your feedback.'
+                : 'This hotel is not taking feedback here. Please speak to the front desk.'}
+            </Text>
+          ) : null}
           <View className="mt-6">
-            <Button label="Submit" onPress={onSubmit} loading={isSubmitting} fullWidth />
+            <Button
+              label="Submit"
+              onPress={onSubmit}
+              loading={isSubmitting}
+              disabled={!canSubmit}
+              fullWidth
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
