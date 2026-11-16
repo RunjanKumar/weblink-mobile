@@ -204,8 +204,15 @@ library's limits in its AAR: `minSdkVersion` in `AndroidManifest.xml`,
     *paused but visible* behind it, which never fires `visibilitychange`, so
     the setup card kept asking for the permission after it was granted.
     `MainActivity.onPause` now pauses the WebView, which hides the page.
-  - The app paints in 5–15 s on a 32-bit ARM TV: the window shows a Nexgen
-    splash and the WebView + page stay transparent until the first render.
+  - The app paints in 5–15 s on a 32-bit ARM TV. Opening it shows only black +
+    logo, then the first real screen: the window background is that splash
+    (Android 12+'s system splash is plain black before it, `values-v31`), the
+    WebView is transparent, and web/index.html keeps the page hidden
+    (`boot-hold`) until a screen's backdrop has painted (`TvBackdrop` →
+    `bootDone`). The web splash and the gate's "Getting your room ready…" are
+    not drawn on Android TV, and the page behind the app is black, not the
+    light theme's cream. Before this a white frame and two loading screens
+    showed between the logo and the dashboard.
   - Not handled: a force-stopped app gets no broadcasts until opened by hand
     (TV Manager's Memory boost / Optimise did *not* force-stop it).
 - **Testing on a real TV:** Developer options → USB debugging, then
@@ -231,6 +238,14 @@ library's limits in its AAR: `minSdkVersion` in `AndroidManifest.xml`,
   Desk message did not send (Xiaomi, Gboard 17.3). TV inputs that submit on
   Enter spread `tvSubmitProps(onSubmit)` instead of `onSubmitEditing`; it also
   closes the keyboard, which covers the bottom of the screen.
+- **The keyboard covers the page.** The window is fullscreen, so Android does
+  not resize it for the keyboard. `MainActivity.reportKeyboard` measures the
+  covered share (`window.__nexgenKeyboard`, `nexgen:keyboard` event) and
+  `useTvKeyboardInset` turns it into style px; Help Desk then lays out above the
+  keyboard (message box on top of it, latest message in view), other screens
+  stay as they are. A recent WebView (Google TV 16, WebView 143) would also
+  shrink and pan the page for the keyboard, which doubled up with that and
+  pushed Help Desk off the top, so the WebView is not given IME insets.
 
 ---
 
@@ -258,6 +273,12 @@ overlay right after the update, and the next wake opens the app. The setup
 card follows the overlay side panel both ways (off → "Allow", on → "restart
 this TV once") without leaving the app; a Settings restart opens the app and
 clears the card.
+
+Same TV, 1.0.3 debug build (2026-11-16): a screen recording of a cold start
+shows the TV's Home, then black + logo from 2.0 s to 9.0 s, then the whole
+dashboard at 9.5 s, with no white or loading frame between; a restart shows
+the same. Help Desk: the message box sits above the keyboard with the latest
+messages in view, and the keyboard's Send sends.
 
 Verified on emulators against the dev server (2026-11-03/04):
 - Google TV 14: pairing, check-in → dashboard, all tiles + Back with focus
