@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Splash behind the transparent WebView until the web app paints; matches the banner. -->
-    <color name="boot_background">#FF262425</color>
+    <!-- Behind the logo while the app starts: pure black, never white, from the
+         first frame until the dashboard is painted. -->
+    <color name="boot_background">#FF000000</color>
     <color name="message_text">#FFF5F2EE</color>
 </resources>

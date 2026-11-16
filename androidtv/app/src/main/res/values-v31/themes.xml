@@ -1,0 +1,13 @@
+<resources>
+    <!--
+      Android 12+ opens every app on a system splash before its own window:
+      the launcher icon on the theme's background colour. Make that plain
+      black, so the black + logo window (values/themes.xml) follows it without
+      a flash or a second, different logo.
+    -->
+    <style name="Theme.NexgenHotels" parent="@android:style/Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@drawable/boot_splash</item>
+        <item name="android:windowSplashScreenBackground">@color/boot_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+    </style>
+</resources>

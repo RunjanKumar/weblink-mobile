@@ -13,6 +13,7 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import {useTVFocus} from '../../hooks/useTVFocus';
 import {IS_TV} from '../../utils/responsive';
+import {bootDone} from '../../services/tvPlatform';
 
 // Client-supplied backdrop plate (assests/background images.jpeg) — the exact
 // suite photo the Figma frames sit on. Deliberately NOT hero.jpg: the hero card
@@ -212,10 +213,14 @@ export function TvBackdrop() {
     <>
       {/* scaled past the frame to crop past the dark night window on the left
           of the plate (the blur's own edge smear is already baked in) */}
+      {/* Painted means the screen is ready to be seen: the Android TV app shows
+          its logo until the first one is (bootDone). */}
       <Image
         source={toSource(backdropImg)}
         resizeMode="cover"
         style={{...bleed, transform: [{scale: 1.3}]}}
+        onLoad={bootDone}
+        onError={bootDone}
       />
       {/* warm veil — pulls the whole field towards the champagne palette */}
       <View style={{...bleed, backgroundColor: 'rgba(247,236,218,0.06)'}} />

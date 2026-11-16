@@ -1,11 +1,11 @@
 <resources>
     <!--
-      Full screen, no action bar. The window background is the Nexgen splash
-      (charcoal + logo); the WebView stays transparent over it until the web app
-      paints its own backdrop, so the wait looks like the app loading, not a
-      blank white screen.
+      Full screen, no action bar, dark: nothing on the way up is ever white. The
+      window background is the Nexgen splash (black + logo); the page stays
+      hidden over it until the first screen is painted (web/index.html), so the
+      guest sees the logo and then the dashboard, nothing in between.
     -->
-    <style name="Theme.NexgenHotels" parent="@android:style/Theme.Material.Light.NoActionBar.Fullscreen">
+    <style name="Theme.NexgenHotels" parent="@android:style/Theme.Material.NoActionBar.Fullscreen">
         <item name="android:windowBackground">@drawable/boot_splash</item>
     </style>
 </resources>

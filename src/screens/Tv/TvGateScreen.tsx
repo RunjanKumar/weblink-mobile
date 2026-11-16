@@ -29,6 +29,14 @@ import {IS_ANDROID_TV_APP} from '../../utils/responsive';
 export function TvGateScreen() {
   const {phase, pairingCode, hotelName, roomNumber, hotelMode} = useTvPresence();
 
+  // Starting, or signing the guest in: on Android TV the app's black + logo
+  // splash stays up instead (see bootDone), so the guest goes from the logo
+  // straight to the screen that follows — usually the dashboard.
+  const settled = (phase === 'pairing' && !!pairingCode) || phase === 'idle' || phase === 'offline';
+  if (IS_ANDROID_TV_APP && !settled) {
+    return <View style={{flex: 1}} />;
+  }
+
   return (
     <View style={{flex: 1, backgroundColor: DS.pageBg}}>
       <TvBackdrop />

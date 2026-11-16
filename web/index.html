@@ -11,15 +11,27 @@
     -->
     <meta name="viewport" content="width=1920, user-scalable=no" />
     <!--
-      Transparent until the app first renders (the script after #root removes
-      this): the wrapper's WebView is transparent too, so its Nexgen splash
-      (androidtv/ res/drawable/boot_splash.xml) shows during the 5–15 s the
-      bundle takes to start on a TV, instead of a blank page.
+      Starting up, the wrapper's WebView is transparent, so its splash (black +
+      logo, androidtv/ res/drawable/boot_splash.xml) shows through, and the page
+      itself stays hidden (boot-hold) until its first real screen has painted
+      its backdrop: TvBackdrop calls bootDone(), which removes boot-hold. The
+      guest sees the logo and then the dashboard, not the 5–15 s of loading
+      screens in between. From then on the page behind the app is black, never
+      the light theme's cream (ThemeProvider's inline colour loses to this).
     -->
-    <style id="boot-transparent">
+    <style>
+      html,
+      body {
+        background: #000 !important;
+      }
+    </style>
+    <style id="boot-hold">
       html,
       body {
         background: transparent !important;
+      }
+      #root {
+        opacity: 0;
       }
     </style>
     <% } else { %>
@@ -104,16 +116,16 @@
     <div id="root"></div>
     <% if (tvTarget === 'androidtv') { %>
     <script>
-      // The first render paints a full-screen backdrop: hand the background back.
+      // Ends boot-hold (see the head). The timeout is only a safety net: every
+      // screen a TV can start on (pairing, welcome, offline, dashboard) reports
+      // in through TvBackdrop.
       (function () {
-        var root = document.getElementById('root');
-        new MutationObserver(function (_, observer) {
-          if (root.childNodes.length) {
-            var style = document.getElementById('boot-transparent');
-            if (style) style.parentNode.removeChild(style);
-            observer.disconnect();
-          }
-        }).observe(root, {childList: true});
+        function done() {
+          var style = document.getElementById('boot-hold');
+          if (style) style.parentNode.removeChild(style);
+        }
+        window.__nexgenBootDone = done;
+        setTimeout(done, 60000);
       })();
     </script>
     <% } %>

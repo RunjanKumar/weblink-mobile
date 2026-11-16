@@ -69,6 +69,8 @@ export function deviceId(): string | null {
 
 export function rootBack(): void {}
 
+export function bootDone(): void {}
+
 export function setHotelMode(_on: boolean): void {}
 
 export function hotelModeStatus(): HotelModeStatus | null {

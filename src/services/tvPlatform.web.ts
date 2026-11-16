@@ -270,6 +270,15 @@ export function rootBack(): void {
   }
 }
 
+/**
+ * The first real screen has painted (Android TV): show the page, which
+ * web/index.html keeps hidden over the wrapper's black + logo splash until
+ * then. Once is enough; no-op elsewhere and after that.
+ */
+export function bootDone(): void {
+  (window as {__nexgenBootDone?: () => void}).__nexgenBootDone?.();
+}
+
 /** Turns Android TV Hotel mode on/off (Home alias + start on boot). No-op elsewhere. */
 export function setHotelMode(on: boolean): void {
   try {

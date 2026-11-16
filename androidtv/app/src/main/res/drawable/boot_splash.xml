@@ -2,7 +2,7 @@
 <!--
   Shown from the moment the app opens until the web app paints (the WebView is
   transparent until then): 5–15 s on a 32-bit ARM TV, longer during a boot.
-  Same charcoal + logo as the launcher banner.
+  Black + logo; the page stays hidden over it until it has painted.
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/boot_background" />
