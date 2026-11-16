@@ -191,6 +191,11 @@ library's limits in its AAR: `minSdkVersion` in `AndroidManifest.xml`,
     stays as the fallback.
   - Wake: the TV launcher reopens its Home ~0.1 s after the app comes up, so
     `HotelMode.bringToFrontAndInsist` re-checks every 1.5 s for 12 s.
+  - Update: installing one stops both processes, and Play updates while the
+    TV is in standby (on the Xiaomi no process was left after the 1.0.1
+    update). `WatchSyncReceiver` also takes `MY_PACKAGE_REPLACED`, so the
+    watcher and its overlay are back at once; without it the next wake showed
+    the TV's Home until a restart.
   - The overlay grant can be lost to a power cut right after "Allow" on some
     TVs (emulator; the Xiaomi kept it), hence the one-restart card
     (`restartNeeded`, via `Settings.Global.BOOT_COUNT`).
