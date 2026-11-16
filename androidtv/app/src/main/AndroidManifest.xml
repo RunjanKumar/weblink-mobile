@@ -81,11 +81,18 @@
         <!--
           Hotel mode runs in a small ":watch" process (see NexgenApplication): it
           survives low-memory kills that take the ~150 MB WebView process.
+          An update stops both processes, and Play updates while the TV is in
+          standby: MY_PACKAGE_REPLACED restarts the watcher, or the next wake
+          would show the TV's Home until a restart.
         -->
         <receiver
             android:name=".WatchSyncReceiver"
             android:exported="false"
-            android:process=":watch" />
+            android:process=":watch">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
 
         <receiver
             android:name=".EarlyBootReceiver"

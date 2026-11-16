@@ -7,7 +7,8 @@ import android.content.Intent
 /**
  * Runs in the ":watch" process. The main process sends it an explicit broadcast
  * whenever Hotel mode or the overlay permission may have changed; receiving it
- * also starts the watcher if the TV killed it.
+ * also starts the watcher if the TV killed it. Android sends MY_PACKAGE_REPLACED
+ * here after an update, which stopped the watcher.
  */
 class WatchSyncReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
